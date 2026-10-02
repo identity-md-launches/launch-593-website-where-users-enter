@@ -14,7 +14,7 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock('../src/auth', () => ({ useAuth: () => mocks.auth }));
 vi.mock('../src/config', () => ({ hasBackend: true, backendConfig: mocks.config }));
-vi.mock('../src/lib/submissions', () => ({ submitProject: mocks.submit }));
+vi.mock('../src/lib/submissions', async (importOriginal) => ({ ...await importOriginal<typeof import('../src/lib/submissions')>(), submitProject: mocks.submit }));
 
 const contract = `0x${'ab'.repeat(20)}`;
 const wallet = `0x${'cd'.repeat(20)}`;
@@ -25,7 +25,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.submit.mockReset();
   Object.assign(mocks.auth, { ready: true, authenticated: true, twitterUsername: 'real_builder', error: null });
-  mocks.auth.getAccessToken.mockResolvedValue('verified-privy-token');
+  mocks.auth.getAccessToken.mockResolvedValue('verified-session-token');
   mocks.auth.login.mockResolvedValue(undefined);
 });
 
@@ -37,13 +37,12 @@ async function fillForm(user: ReturnType<typeof userEvent.setup>) {
 }
 
 function renderForm() {
-  const onPublished = vi.fn();
   const onClose = vi.fn();
-  render(<Submission onPublished={onPublished} onClose={onClose} />);
-  return { onPublished, onClose };
+  render(<Submission onClose={onClose} />);
+  return { onClose };
 }
 
-describe('authenticated public submission', () => {
+describe('Twitter-verified public submission', () => {
   it.each([
     { authenticated: false, twitterUsername: null },
     { authenticated: true, twitterUsername: null },
@@ -52,82 +51,77 @@ describe('authenticated public submission', () => {
     const user = userEvent.setup();
     renderForm();
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Publish project' })).not.toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Continue with Twitter' }));
+    expect(screen.queryByRole('button', { name: 'Submit project' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Verify with Twitter' }));
     expect(mocks.auth.login).toHaveBeenCalledOnce();
     expect(mocks.submit).not.toHaveBeenCalled();
   });
 
   it('requires complete valid fields and explicit public visibility consent', async () => {
     const user = userEvent.setup();
-    const { onPublished } = renderForm();
+    renderForm();
     const twitter = screen.getByRole('textbox', { name: /^Twitter account/ });
     expect(twitter).toHaveValue('@real_builder');
     expect(twitter).toHaveAttribute('readonly');
-    await user.click(screen.getByRole('button', { name: 'Publish project' }));
+    await user.click(screen.getByRole('button', { name: 'Submit project' }));
     for (const name of [/^Project username/, /^Contract address/, /^About your project/, /^Wallet address/]) {
       expect(screen.getByRole('textbox', { name })).toHaveAttribute('aria-invalid', 'true');
     }
     await waitFor(() => expect(screen.getByRole('textbox', { name: /^Project username/ })).toHaveFocus());
     expect(screen.getByText('Confirm that you want to make these details public.')).toBeVisible();
     await fillForm(user);
-    await user.click(screen.getByRole('button', { name: 'Publish project' }));
+    await user.click(screen.getByRole('button', { name: 'Submit project' }));
     expect(screen.getByRole('checkbox')).toHaveAttribute('aria-invalid', 'true');
     expect(mocks.auth.getAccessToken).not.toHaveBeenCalled();
     expect(mocks.submit).not.toHaveBeenCalled();
-    expect(onPublished).not.toHaveBeenCalled();
   });
 
   it('publishes only after server success, with normalized input and the access token', async () => {
     const user = userEvent.setup();
     let resolveSubmission!: (project: Project) => void;
     mocks.submit.mockImplementation(() => new Promise<Project>((resolve) => { resolveSubmission = resolve; }));
-    const { onPublished, onClose } = renderForm();
+    const { onClose } = renderForm();
     await fillForm(user);
     await user.click(screen.getByRole('checkbox'));
-    await user.click(screen.getByRole('button', { name: 'Publish project' }));
+    await user.click(screen.getByRole('button', { name: 'Submit project' }));
     await waitFor(() => expect(mocks.submit).toHaveBeenCalledOnce());
-    expect(mocks.submit).toHaveBeenCalledWith(mocks.config, { projectUsername: 'pond_tools', contract, wallet, description }, 'verified-privy-token');
-    expect(screen.getByRole('button', { name: 'Publishing project…' })).toBeDisabled();
+    expect(mocks.submit).toHaveBeenCalledWith(mocks.config, { projectUsername: 'pond_tools', contract, wallet, description }, 'verified-session-token');
+    expect(screen.getByRole('button', { name: 'Submitting project…' })).toBeDisabled();
     expect(screen.getByRole('textbox', { name: /^Project username/ })).toBeDisabled();
-    expect(onPublished).not.toHaveBeenCalled();
-    expect(screen.queryByText('You’re in the pond.')).not.toBeInTheDocument();
+    expect(screen.queryByText('Project submitted')).not.toBeInTheDocument();
     await act(async () => { resolveSubmission(persisted); });
-    expect(onPublished).toHaveBeenCalledExactlyOnceWith(persisted);
-    expect(screen.getByRole('heading', { name: 'You’re in the pond.' })).toBeVisible();
-    await user.click(screen.getByRole('button', { name: 'Explore the collective' }));
+    expect(screen.getByRole('heading', { name: 'Project submitted' })).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Done' }));
     expect(onClose).toHaveBeenCalledOnce();
   });
 
   it('keeps every entered detail after a failed save and supports retry', async () => {
     const user = userEvent.setup();
     mocks.submit.mockRejectedValueOnce(new Error('The public directory is unavailable. Please try again.')).mockResolvedValueOnce(persisted);
-    const { onPublished } = renderForm();
+    renderForm();
     await fillForm(user);
     await user.click(screen.getByRole('checkbox'));
-    await user.click(screen.getByRole('button', { name: 'Publish project' }));
+    await user.click(screen.getByRole('button', { name: 'Submit project' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('The public directory is unavailable. Please try again.');
     expect(screen.getByRole('textbox', { name: /^Project username/ })).toHaveValue(' @pond_tools ');
     expect(screen.getByRole('textbox', { name: /^Contract address/ })).toHaveValue(contract);
     expect(screen.getByRole('textbox', { name: /^About your project/ })).toHaveValue(` ${description} `);
     expect(screen.getByRole('textbox', { name: /^Wallet address/ })).toHaveValue(wallet);
     expect(screen.getByRole('checkbox')).toBeChecked();
-    expect(onPublished).not.toHaveBeenCalled();
-    await user.click(screen.getByRole('button', { name: 'Publish project' }));
-    await waitFor(() => expect(onPublished).toHaveBeenCalledExactlyOnceWith(persisted));
+    await user.click(screen.getByRole('button', { name: 'Submit project' }));
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Project submitted' })).toBeVisible());
     expect(mocks.submit).toHaveBeenCalledTimes(2);
   });
 
   it('does not contact the submission endpoint when the session token has expired', async () => {
     const user = userEvent.setup();
     mocks.auth.getAccessToken.mockResolvedValue(null);
-    const { onPublished } = renderForm();
+    renderForm();
     await fillForm(user);
     await user.click(screen.getByRole('checkbox'));
-    await user.click(screen.getByRole('button', { name: 'Publish project' }));
+    await user.click(screen.getByRole('button', { name: 'Submit project' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Your session has expired.');
     expect(mocks.submit).not.toHaveBeenCalled();
-    expect(onPublished).not.toHaveBeenCalled();
     expect(screen.getByRole('textbox', { name: /^Project username/ })).toHaveValue(' @pond_tools ');
   });
 });

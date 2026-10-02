@@ -22,12 +22,24 @@ export interface ProjectInput {
 
 const selection = 'id,projectUsername:project_username,twitterUsername:twitter_username,contract,description,wallet,createdAt:created_at';
 
+export function validateProject(input: ProjectInput): Partial<Record<keyof ProjectInput, string>> {
+  const errors: Partial<Record<keyof ProjectInput, string>> = {};
+  if (!/^[a-zA-Z0-9_-]{3,32}$/.test(input.projectUsername.trim().replace(/^@/, ''))) errors.projectUsername = 'Use 3–32 letters, numbers, underscores or hyphens.';
+  for (const field of ['contract', 'wallet'] as const) {
+    if (!/^0x[0-9a-fA-F]{40}$/.test(input[field].trim()) || /^0x0{40}$/i.test(input[field].trim())) {
+      errors[field] = `Enter a nonzero EVM ${field} address: 0x followed by 40 hexadecimal characters.`;
+    }
+  }
+  if (input.description.trim().length < 20 || input.description.trim().length > 1000) errors.description = 'Describe your project in 20–1,000 characters.';
+  return errors;
+}
+
 function baseUrl(config: BackendConfig): string {
   const url = new URL(config.url);
   if (url.protocol !== 'https:' && !['localhost', '127.0.0.1'].includes(url.hostname)) {
-    throw new Error('The public directory requires an HTTPS backend URL.');
+    throw new Error('Submissions require an HTTPS backend URL.');
   }
-  if (!config.anonKey.trim()) throw new Error('The public directory is not configured yet.');
+  if (!config.anonKey.trim()) throw new Error('Submissions are not configured yet.');
   return config.url.replace(/\/+$/, '');
 }
 
@@ -43,21 +55,21 @@ async function request(url: string, init: RequestInit): Promise<unknown> {
   try {
     response = await fetch(url, { ...init, signal: AbortSignal.timeout(20_000) });
   } catch {
-    throw new Error('We could not reach the public directory. Check your connection and try again.');
+    throw new Error('Unable to reach the submission service. Check your connection and try again.');
   }
   const body: unknown = await response.json().catch(() => null);
   if (!response.ok) {
     const message = body && typeof body === 'object' && 'error' in body && typeof body.error === 'string'
       ? body.error
       : response.status === 401 || response.status === 403
-        ? 'Your session could not be verified. Sign in with Twitter again.'
-        : 'The public directory is temporarily unavailable. Please try again.';
+        ? 'Your Twitter verification could not be confirmed. Verify with Twitter again.'
+        : 'Submissions are temporarily unavailable. Please try again.';
     throw new Error(message);
   }
   return body;
 }
 
-/** All persisted public submissions, read without a Privy session. */
+/** All persisted public submissions. Reading needs no Twitter verification: every submission is public. */
 export async function fetchProjects(config: BackendConfig): Promise<Project[]> {
   const base = baseUrl(config);
   const projects: Project[] = [];
@@ -68,15 +80,15 @@ export async function fetchProjects(config: BackendConfig): Promise<Project[]> {
     const body = await request(`${base}/rest/v1/projects?${query}`, {
       headers: { apikey: config.anonKey, Accept: 'application/json' },
     });
-    if (!Array.isArray(body) || !body.every(isProject)) throw new Error('The directory returned an unexpected response. Please try again.');
+    if (!Array.isArray(body) || !body.every(isProject)) throw new Error('The submission service returned an unexpected response. Please try again.');
     projects.push(...body);
     if (body.length < pageSize) return [...new Map(projects.map((project) => [project.id, project])).values()];
   }
 }
 
-/** Twitter identity is deliberately absent from input; the server derives it. */
+/** Twitter identity is deliberately absent from input; the server derives it from the verified session. */
 export async function submitProject(config: BackendConfig, input: ProjectInput, accessToken: string): Promise<Project> {
-  if (!accessToken) throw new Error('Sign in with Twitter before publishing your project.');
+  if (!accessToken) throw new Error('Verify with Twitter before submitting your project.');
   const body = await request(`${baseUrl(config)}/functions/v1/submit-project`, {
     method: 'POST',
     headers: {
@@ -86,6 +98,6 @@ export async function submitProject(config: BackendConfig, input: ProjectInput, 
     },
     body: JSON.stringify(input),
   });
-  if (!isProject(body)) throw new Error('The server response was incomplete. Refresh the directory before trying again.');
+  if (!isProject(body)) throw new Error('The server response was incomplete. Please try again.');
   return body;
 }

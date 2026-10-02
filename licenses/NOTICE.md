@@ -6,4 +6,4 @@ Sources: https://github.com/jakubkrehel/skills/tree/267330e1adfc66a718fb65fa6918
 
 Inter and Space Grotesk are distributed under the SIL Open Font License 1.1. Their notices are included beside the self-hosted WOFF2 files in `public/fonts/` and copied to `dist/fonts/`.
 
-Hero illustration generated for this project using the built-in imagegen tool. Prompt and provenance: `artifacts/hero-prompt.md`. Interface icons use lucide-react (ISC); the Twitter X mark is used solely to identify the sign-in provider.
+The background illustration `public/images/pepe-squad.webp` ("pepes armed with AI") was generated for this project in the previous job with the built-in image generation tool and is reused unchanged. Interface icons use lucide-react (ISC); the Twitter X mark is used solely to identify the verification provider.

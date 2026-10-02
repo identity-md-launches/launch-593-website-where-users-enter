@@ -2,101 +2,93 @@
 
 ## Overview
 
-Pepe Collective is a public project directory for people building with AI. The green visual direction combines a quiet, light directory with a forest-green hero and a group of Pepe frogs carrying AI tools. The hero composition belongs to this landing page; the shared surface, type, control, and spacing rules belong to the wider product.
+Pepe Collective is a one-action website for people building with AI. The "pepes armed with AI" illustration fills the whole viewport, the entire interface is green, and the only visible control is a lime **Submit a project** button. Everything else happens in a dark-green native dialog: Twitter verification, the five-field submission form, and a confirmation. There is no navigation, directory, footer or secondary copy on the page; a visually hidden `<h1>` keeps a document outline for assistive technology.
 
-`src/styles.css` is the source of truth for tokens and component classes. `src/App.tsx` owns the page and directory patterns; `src/components/` contains the shared dialog, submission flow, and marks. Maintain clear section headings, compact metadata, generous space around primary actions, and consistent card alignment. There is one light theme with dark accent surfaces; there is no theme switch.
+`src/styles.css` is the source of truth for tokens and component classes. `src/App.tsx` owns the page; `src/components/` holds the shared dialog, the submission flow and the two marks. Future surfaces should keep this restraint: one filled action per view, generous space, dark-green surfaces, light-green text, lime only for actions and emphasis. There is one dark theme and no theme switch (`color-scheme: dark`).
 
 ## Colors
 
-All values below are implemented in `src/styles.css`. Prefer semantic tokens when adding UI.
+All values are implemented in `src/styles.css` as hex primitives (one green ramp plus a lime accent). Components reference only the semantic tokens.
 
-| Semantic token | Value or canonical token | Use |
+| Semantic token | Primitive and value | Use |
 | --- | --- | --- |
-| `--surface-page` | `--neutral-50`: `#f7f8f4` | Page and header |
-| `--surface-card` | `--neutral-0`: `#ffffff` | Cards, dialogs, fields |
-| `--surface-subtle` | `--sage-50`: `#f5f7f1` | Read-only fields, category labels, notices |
-| `--surface-tint` | `--sage-100`: `#eaf0e5` | Join banner, callouts, hover surfaces |
-| `--surface-dark` | `--forest-950`: `#11291d` | Hero, selected filter, toast, dark action |
-| `--text-primary` | `--neutral-900`: `#202d23` | Headings and main text |
-| `--text-secondary` | `--neutral-600`: `#5c685d` | Body copy and metadata |
-| `--text-muted` | `--neutral-500`: `#6a7569` | Placeholders and quieter metadata |
-| `--text-on-dark` / `--text-on-dark-secondary` | `#f7f9f1` / `#c0cdbb` | Text on forest surfaces |
-| `--border-subtle` / `--border-control` | `--neutral-200`: `#e1e6dc` / `#7f8b79` | Dividers and cards / input boundaries |
-| `--accent-solid` / `--accent-hover` | `--lime-400`: `#c3ee86` / `--lime-300`: `#d5f5a7` | Primary actions and hero highlights |
-| `--accent-text` | `--forest-600`: `#42634b` | Green text, category labels, success icon |
-| `--focus-ring` | `#47713c` | Focus on light surfaces |
-| `--error-text` / `--error-surface` | `#a72d29` / `#fff1ed` | Field errors and failure alerts |
+| `--surface-page` | `--green-950` `#061a0f` | Page/canvas behind the artwork, backdrop fallback |
+| `--surface-dialog` | `--green-800` `#123520` | Dialog panel |
+| `--surface-field` | `--green-900` `#0b2416` | Text inputs, textarea, verification art tiles |
+| `--surface-subtle` | `--green-700` `#1a472c` | Public callout, read-only field, success icon, error surface |
+| `--surface-backdrop` | `rgb(6 26 15 / .72)` | Dialog backdrop (with 6px blur) |
+| `--text-primary` | `--green-100` `#e2f5d4` | Headings, labels, field values |
+| `--text-secondary` | `--green-200` `#b9e2a8` | Body copy, hints, read-only value, icon button |
+| `--text-muted` | `--green-300` `#8fc984` | Placeholders, the "+" between marks |
+| `--text-on-accent` | `--green-950` `#061a0f` | Text on lime buttons |
+| `--border-subtle` | `--green-600` `#2a6a3c` | Dialog border, dividers, read-only field border |
+| `--border-control` | `--green-500` `#4f9158` | Input borders |
+| `--accent-solid` / `--accent-hover` | `--lime-400` `#c3ee86` / `--lime-300` `#d5f5a7` | Primary buttons, invalid-field border, checkbox accent, verification art |
+| `--accent-text` | `--lime-400` `#c3ee86` | "Verified" label, link-style button, callout icon, success icon |
+| `--focus-ring` | `--lime-100` `#eeffd2` | 3px focus outline, 3px offset |
+| `--error-text` / `--error-surface` | `--lime-100` `#eeffd2` / `--green-700` `#1a472c` | Field errors and the form alert |
 
-`--forest-800` (`#254632`) supplies the dark-action hover and checkbox accent. The hero eyebrow uses `#c3ee86` on `#1d3925`, with a `#345031` border. Project mark variants use local green pairs in `.project-mark` and `.mark-1` through `.mark-5`; they identify illustrations, not status. Success uses green plus an icon and written confirmation; errors have text and an invalid state as well as color.
+Errors stay inside the green system by design; they are distinguished by bold weight, an alert-circle icon, `aria-invalid` and a 2px lime border, never by hue alone. The page overlay is a fixed gradient `rgb(6 26 15 / .28) → .12 at 45% → .82` over the artwork so the button area reads darker.
 
-Measured foreground/background contrast pairs: secondary text on white **5.84:1**; muted text on white **4.82:1**; category `#42634b` on `#f5f7f1` **6.24:1**; CTA `#11291d` on `#c3ee86` **11.70:1**; hero secondary text on forest **9.34:1**; hero eyebrow text on its background **9.55:1**. These measurements describe those pairs, not a complete accessibility certification.
+Measured WCAG contrast (test/scratch script, relative luminance): primary text on dialog **11.73:1**; secondary text on dialog **9.32:1**; placeholder on field **8.49:1**; secondary text on subtle **7.32:1**; accent text on dialog **10.22:1**; error text on error surface **10.03:1**; button text on lime **13.67:1** and on hover **15.01:1**; input border on field **4.32:1**; focus ring on dialog **12.77:1** and on page **17.09:1**. The `--border-subtle` divider measures 2.07:1 and is decorative only. The focus ring sits 3px outside the lime button over the page or dialog surface, not on the lime itself.
 
 ## Typography
 
-The body stack is `Inter, Arial, sans-serif`; `--font-display` is `'Space Grotesk', Inter, Arial, sans-serif`. Local `public/fonts/inter-latin.woff2` and `public/fonts/space-grotesk-latin.woff2` are declared as normal, weights 400–700, with `font-display: swap`; no italic face is declared. Font synthesis is disabled. Both intended families were confirmed loaded in browser inspection. License files accompany the fonts.
+Body stack `Inter, Arial, sans-serif`; `--font-display` is `'Space Grotesk', Inter, Arial, sans-serif`. Both are self-hosted WOFF2 files in `public/fonts/` (variable weight 400–700, normal style only, `font-display: swap`); the browser check confirmed both loaded. Font synthesis is off; no italics are used.
 
-| Role | Implemented size, weight, and rhythm |
+| Role | Implemented |
 | --- | --- |
-| Hero heading | Display, 600, desktop `clamp(2.65rem, 4.55vw, 3.75rem)`, line-height 1.06, letter-spacing −2.8px; responsive overrides below |
-| Section heading | `--text-section`: 2.25rem, display 500, line-height 1.2, tracking −1.5px |
-| Card title | `--text-title`: 1.25rem, display 600, tracking −.55px; 22px on mobile |
-| Dialog heading | Display 600, 21px, tracking −.5px; 19px on mobile |
-| General UI / body | `--text-ui`: .875rem; `--text-body`: 1rem; paragraphs default to line-height 1.6 |
-| Card description | 13px, line-height 1.8, three-line preview; full text in detail dialog |
-| Smaller UI | `--text-sm`: .8125rem; `--text-xs`: .75rem; individual metadata uses 10–12px |
-| Fields and labels | Input/textarea 16px; labels 12px/600; hints 11px; errors 12px |
+| Page action (`.submit-button`) | Display, 600, `--text-cta` 1.25rem (1.125rem ≤ 40rem), letter-spacing −0.3px |
+| Dialog heading (`.modal-heading h2`) | Display, 600, `--text-title` 1.3125rem, −0.4px |
+| Step headings (`.auth-gate h3`, `.success-state h3`) | Display, 1.75rem (1.5rem ≤ 40rem), line-height 1.15, −0.8px |
+| Body / dialog copy | `--text-ui` .875rem, line-height 1.6, `text-wrap: pretty` |
+| Field values | `--text-body` 1rem (16px, avoids iOS zoom) |
+| Labels, consent, errors, callout | `--text-sm` .75rem; labels and errors 600 |
+| Hints and the Verified label | `--text-xs` .6875rem |
 
-Eyebrows use uppercase with 1.3–1.8px tracking. Counts use tabular numbers. Headings balance wrapping; paragraphs use `text-wrap: pretty`. The hero heading, project handles, detail text, and addresses can break long words. `.hero-copy` has `min-width: 0` so enlarged heading text can remain inside its grid cell. Authentication copy is limited to 360px; success copy to 380px; empty-state copy to 500px.
+Headings use `text-wrap: balance`; dialog copy is capped at 38ch; the character counter and handles use `tabular-nums`/`overflow-wrap: anywhere` where values change or can be long.
 
 ## Layout
 
-`.container` centers content at a maximum outer width of 1304px, with 32px inline padding. `body` supports a minimum width of 320px. Spacing tokens `--space-1`, `-2`, `-3`, `-4`, `-6`, `-8`, and `-12` define 4, 8, 12, 16, 24, 32, and 48px; existing component rules also use explicit values such as the 18px card gap and 20px form row gap.
+The page is a single `main.stage` grid filling `100dvh` (with a `100vh` fallback) that places the button at the bottom centre, inset by `max(10vh, safe-area + 24px)` vertically and `max(20px, safe-area)` horizontally. The artwork lives in `.backdrop`, a fixed full-viewport layer with `object-fit: cover` and `object-position: 60% 50%` (58% below 40rem) so the central frog stays in frame on portrait phones.
 
-The landing page uses a two-column hero, a three-item principles row, a directory heading and toolbar, then `.project-grid`. Cards use `minmax(0, 1fr)`, flexible vertical layout, and bottom-aligned metadata. The toolbar wraps rather than scrolling horizontally. `.form-grid` is two columns with description and wallet rows spanning both columns.
+Spacing tokens `--space-1/2/3/4/5/6/8` are 4, 8, 12, 16, 20, 24 and 32px. The dialog is `min(560px, 100% − 24px)` wide with 20/24px padding (16px below 40rem), a 16px heading gap and 24px section gaps. `.form-grid` is two columns with 20×16px gaps; the description and wallet rows span both.
 
-| Breakpoint | Active adaptations |
+| Breakpoint | Adaptation |
 | --- | --- |
-| Above 70rem | 92px header, full navigation, three directory columns; hero copy/art columns 1.05fr/1fr |
-| At most 70rem | Tighter navigation and cards, short sign-in label, hero heading 3.15rem |
-| At most 55rem | Two directory columns; 80px header; last desktop nav item hidden; two principles shown; hero heading 2.7rem; hero actions stack |
-| At most 42rem | 20px page padding; mobile menu; single-column hero with 3:2 art below copy; all three principles stacked; single-column cards and form; full-width search; footer and join banner stack |
-| At most 23rem | 14px page padding, smaller brand and controls; hero heading 2.35rem and narrower copy padding |
+| ≤ 40rem (640px) | Button becomes full width up to 420px with smaller type; single-column form; full-width submit; tighter dialog padding |
+| ≤ 30rem height | Button centres vertically (landscape phones) |
 
-At 42rem and below the hero heading uses `clamp(2.55rem, 8vw, 3.4rem)` until the 23rem override. Hero artwork is cropped with `object-fit: cover`; its edge mask fades horizontally on desktop and vertically on mobile. The duplicate directory submit action is hidden on mobile; hero and join actions remain available.
-
-The final page was inspected at 320, 390, 768, 1024, and 1440px with no horizontal page overflow: one card column at 320/390, two at 768, and three at 1024/1440. Intermediate widths are governed by the CSS rules above. Native dialogs have `max-height: min(90dvh, 900px)` and scroll when content exceeds a short viewport.
-
-At 320px with root font size enlarged to 200%, the repaired hero heading wrapped completely within its 250px content width. This root-font check is distinct from browser-native zoom and does not establish enlargement of every pixel-sized label. Final input boundaries measured 3.58:1 on white; the light-surface focus ring measured 5.68:1 on white.
+Inspected at 1440×900, 390×844 and 320×568: no horizontal overflow, the dialog fits at 320 with 19px margins, and at 320 with the root font at 200% the button and dialog wrap without overflow while the dialog scrolls vertically (`max-height: min(92dvh, 900px)`, `overscroll-behavior: contain`).
 
 ## Elevation & Depth
 
-Most surfaces are flat, separated by subtle 1px borders. Hovered cards use border `#b2c6a6` and shadow `0 4px 16px #11291d05`. Dialogs use `0 12px 50px #11291d26`; their backdrop is `#0b201c9e` with 4px blur. Toasts use `0 6px 25px #11291d30` and `z-index: 9`. The keyboard skip link has `z-index: 100`; native modal dialogs occupy the browser's top layer. Hero art is isolated beneath its copy.
+Flat surfaces separated by 1px `--border-subtle` lines. The page button carries `0 12px 32px rgb(6 26 15 / .55)` plus a 1px inset highlight and a 1px dark outline; the dialog uses `0 24px 64px rgb(6 26 15 / .6)` and a blurred backdrop. Native `<dialog>` occupies the top layer; `.backdrop` is the lowest layer and `pointer-events: none`.
 
 ## Shapes
 
-The radius tokens are `--radius-sm: 6px`, `--radius-control: 8px`, `--radius-card: 12px`, and `--radius-panel: 20px`. Buttons use the control token; cards use the card token; the desktop hero uses the panel token. Fields/filter controls use 7px, badges 5px, dialogs 20px, and the mobile hero 16px. Status dots, success marks, and principle icons are circular. Keep these distinctions instead of rounding every surface into a pill.
+`--radius-control` 8px (buttons, callout, alert, icon button), `--radius-field` 7px (inputs), `--radius-cta` 16px (page button), `--radius-panel` 20px (dialog). The verification art tiles use 17px; the success icon is a circle. Keep the dialog rounder than its contents and the fields squarer than the buttons.
 
 ## Components
 
-| Source / pattern | Reuse and behavior |
+| Source / pattern | Reuse and behaviour |
 | --- | --- |
-| `src/styles.css`: `.button` | Shared inline-flex action, normally at least 46px high. `.button-primary` is lime, `.button-secondary` is bordered white, `.button-signin` is compact. Join-banner primary is forest. Hover is gated by `hover: hover`; disabled controls lower opacity and show a wait cursor. |
-| `src/App.tsx`: navigation | Hash links for home/projects; buttons open informational dialogs. Mobile toggle exposes `aria-expanded` and `aria-controls`; selecting a destination closes it. A visible-on-focus skip link targets the main content. |
-| `src/App.tsx`: directory | Category buttons use `aria-pressed`, search has a programmatic label and clear control, sort is a native select. Result counts use a status region. Loading, retryable load failure, no matches, and an empty live directory have explicit states. |
-| `src/App.tsx`: `ProjectCard` / `ProjectDetail` | Local patterns, not exported library components. Title button opens details; description preview is clamped. Details expose all five fields and copy-address buttons with an announced result or manual-copy fallback. Examples are explicitly labeled. |
-| `src/components/Modal.tsx`: `Modal` | Props: `title`, `children`, `onClose`, optional `wide`. Native `showModal()` supplies modal interaction; Escape, close button, and backdrop click dismiss. Captures/restores prior focus and locks background scrolling. Width 540px, or 660px with `wide`, constrained to viewport minus 32px. |
-| `src/components/Submission.tsx`: `Submission` | Props: `onPublished`, `onClose`. Shows the Twitter authentication gate before fields. Authenticated Twitter is read-only; username, EVM contract, description, and EVM wallet are editable. Public disclosure and consent precede publishing. Validation associates errors with fields and focuses the first invalid field. Saving disables the fieldset and submit button; success appears after a server response. |
-| `src/components/Marks.tsx` | `FrogMark({className})`, `XMark()`, and `ProjectMark({index})`; decorative SVGs use `aria-hidden`. Project marks cycle through six Lucide icons and color treatments. Other interface icons come from `lucide-react`. |
-| `public/images/pepe-squad.webp` | Local 1536×1024 hero image, with descriptive alt text in `App.tsx`. Generation prompt and provenance are in `artifacts/hero-prompt.md`. |
+| `src/styles.css` `.button` + `.button-primary` | Inline-flex action, ≥46px high, lime fill, dark text. Hover is gated by `hover: hover`; press scales to 0.96 and 150ms colour transitions apply only under `prefers-reduced-motion: no-preference`. Disabled lowers opacity and shows a wait cursor. |
+| `.submit-button` | The page action variant: larger display type, 64px tall, 16px radius, shadow. There should be exactly one on the page. |
+| `.link-button` | Inline text action (used for "Not you? Sign out"): underlined lime text, 24px minimum height. |
+| `src/components/Modal.tsx` `Modal` | Props `title`, `children`, `onClose`. Uses `showModal()`; Escape, the labelled close button and backdrop click dismiss; focus returns to the opener and background scroll is locked. |
+| `src/components/Submission.tsx` `Submission` | Prop `onClose`. Three states: verification gate (`.auth-gate`, button **Verify with Twitter**, `role="alert"` message), form (`.project-form`: read-only verified Twitter field with sign-out, four editable fields with hints, consent checkbox, submit), and success (`.success-state`, **Done**). Validation runs on submit, marks `aria-invalid`, links errors with `aria-describedby` and focuses the first invalid control. Saving disables the fieldset and the submit button keeps its label with "…". |
+| `src/components/Marks.tsx` | `FrogMark` and `XMark`, decorative SVGs (`aria-hidden`). Other icons are lucide-react at 1.5–2px stroke. |
+| `src/auth.tsx` `AuthProvider` / `useAuth` | `ready`, `authenticated`, `twitterUsername`, `error`, `login()`, `logout()`, `getAccessToken()`; `RESUME_KEY` tells the page to reopen the dialog after the OAuth redirect. |
+| `public/images/pepe-squad.webp` | 1536×1024 background artwork, `alt=""` inside an `aria-hidden` layer. |
 
-Global focus uses a 3px outline with 4px offset; hero controls use lime, while the join banner explicitly uses `--focus-ring` on its light background. Forced-colors mode adds control borders and a system-color focus outline. Smooth scrolling, 150ms action/card transitions, and active button scaling only apply when reduced motion is not requested. Toast text has a parallel status announcement and a dismiss button.
-
-The committed preview has no configured production authentication or publication service; it shows labeled examples and keeps submission fields behind authentication. Form rendering was exercised through test fixtures, not a live Twitter session. No screen-reader or complete accessibility compliance claim is made here.
+Forced-colors mode adds system borders to controls, a `Highlight` focus outline, and removes the gradient overlay.
 
 ## Do's and Don'ts
 
-- Start another page with `.container`, the semantic colors, Inter body copy, and display headings. Keep the shared header/footer and use hash navigation unless separate static pages are deliberately exported.
-- Reuse `.button-primary` for the main action, secondary buttons for supporting actions, and `Modal` for focused detail or form tasks. Preserve labels, focus handling, loading feedback, and clear recoverable errors.
-- Keep public-submission language explicit and fictional examples labeled. Do not present sign-in as verification of contract or wallet ownership.
-- Reuse local marks, hero assets, and fonts. Keep status meaning in text and icons; decorative project colors are not a status system.
-- Preserve the light directory and forest accent hierarchy. Avoid introducing a dark theme, unrelated accent palette, or stronger card shadows without an intentional broader design change.
+- Start a new surface from `main.stage` or a `Modal`; keep the artwork layer and `--surface-page` behind it.
+- One lime `.button-primary` per view. Secondary actions are `.link-button` text or the icon close button, never a second filled colour.
+- Put new colours through the semantic tokens; stay within the green ramp and lime accent. Do not add red, yellow or a light theme: status is carried by icon, text and weight.
+- Keep text in the dialog, not on the page. The request removed all page text and controls except **Submit a project**; the hidden `<h1>` is the only exception.
+- Keep every field labelled, hints before errors, and the public-visibility callout and consent ahead of the submit action.
+- Recipe for another dialog: `Modal` + a content block using `.public-callout`, `.form-field`, `.field-hint`, `.field-error`, `.form-alert` and `.form-footer`, with the primary action last.

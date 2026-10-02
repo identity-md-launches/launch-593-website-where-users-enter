@@ -1,8 +1,10 @@
 # Pepe Collective
 
-A responsive, green project directory for people building with AI. The React/TypeScript site includes custom Pepe artwork, public project cards, search, category filters, sorting, complete project details, and a five-detail submission form gated by Privy Twitter authentication.
+A single-action website: the "pepes armed with AI" artwork fills the screen, everything is green, and the only visible control is **Submit a project**. The dialog behind it verifies the visitor's Twitter account, then collects the five public details (Twitter account, project username, contract address, project description, wallet address).
 
-**Delivered state:** `dist/` is a complete static preview with six clearly labeled fictional examples. Real Twitter sign-in and shared public submissions require your Privy app and a deployed Supabase backend. No credentials were provided, so neither service has been deployed or claimed to work live. The preview does not fake authentication, save local submissions, or represent examples as real projects.
+This revision removes Privy. Twitter verification now runs through **Supabase Auth's Twitter provider** using its REST API directly (OAuth with PKCE) from `src/auth.tsx`; the Edge Function in `backend/` confirms the session with Supabase Auth before storing a submission. There is no wallet connection and no third-party auth SDK in the bundle.
+
+**Delivered state:** `dist/` is a complete static export. Without configured public identifiers it shows the page and dialog, and the verification button explains that Twitter verification is not available in the preview. Real verification and shared public submissions need a Supabase project configured as described below. No credentials were supplied, so neither was deployed or exercised live here.
 
 ## Install and run
 
@@ -13,70 +15,72 @@ npm ci
 npm run dev
 ```
 
-Open the local URL printed by Vite. Dependencies use the checked-in `package-lock.json`; do not submit `node_modules/`, package caches, or service secrets.
+Open the local URL printed by Vite. Dependencies come from the checked-in `package-lock.json`; do not submit `node_modules/`, package caches or secrets.
 
 ```sh
-npm run typecheck
-npm test
-npm run test:backend
-npm run build
-npm run preview
+npm run typecheck      # tsc --noEmit
+npm test               # vitest: tests/**/*.test.tsx
+npm run test:backend   # node backend/run-tests.mjs (handler + transport)
+npm run build          # tsc --noEmit && vite build -> dist/
+npm run preview        # serve dist/
 ```
 
-`npm run build` runs TypeScript and writes the production export into `dist/`. `npm run preview` serves that export. For a build-free preview, `python3 -m http.server 8080 --directory dist` also works. Serve over HTTP rather than opening `index.html` as a `file:` URL.
+`npm run build` writes the production export into `dist/`. For a build-free preview, `python3 -m http.server 8080 --directory dist` also works. Serve over HTTP rather than opening `index.html` as a `file:` URL.
 
-## Enable real Twitter sign-in and public submissions
+The manifest and lockfile were not changed in this revision because the assignment forbids editing them. They still list `@privy-io/js-sdk-core` and `viem`, which nothing imports any more; Vite does not bundle them. Removing those two entries and refreshing the lockfile is a one-line follow-up once manifest edits are allowed.
 
-1. Create a Privy app and enable Twitter OAuth. Allow the final website origin and exact callback URL, including any hosting subpath. The callback is the page's origin + pathname, without its hash. The frontend and backend must use the same Privy app ID.
-2. Deploy the SQL migration and authenticated Edge Function using [backend/README.md](backend/README.md). Privy app secrets and the Supabase service-role key belong only in the Edge Function's secret manager.
-3. Edit `public/config.js` with these **public** identifiers:
+## Enable Twitter verification and public submissions
+
+1. Create a Supabase project. In **Authentication → Providers**, enable **Twitter** with an API key and secret from a Twitter developer app whose callback URL is `https://<project-ref>.supabase.co/auth/v1/callback`.
+2. In **Authentication → URL configuration**, add the website's exact page URL to the redirect allow list, for example `https://your.site/` or `https://gateway.example/ipfs/<cid>/`. The frontend returns to `window.location.origin + pathname`, so a gateway subpath must be listed.
+3. Deploy the SQL migration and the Edge Function using [backend/README.md](backend/README.md). Set `ALLOWED_ORIGINS` for the function. Supabase supplies the function's URL and keys itself; no auth secret is needed anywhere in this repository.
+4. Edit `public/config.js` with the **public** identifiers:
 
    ```js
    window.PEPE_CONFIG = {
-     privyAppId: 'your-public-privy-app-id',
-     privyClientId: '', // Optional public Privy client ID
      supabaseUrl: 'https://your-project.supabase.co',
      supabaseAnonKey: 'your-public-anon-or-publishable-key',
    };
    ```
 
-4. Run `npm run build` and publish the resulting `dist/`. The file `dist/config.js` is runtime configuration, so a hosting operator can also update its public identifiers without rebuilding JavaScript; update the source copy as well for future builds.
-5. On your actual public domain, complete Twitter login, publish a test project, and confirm it appears in another signed-out browser. Verify anonymous insert/update/delete attempts are rejected. These live deployment checks were not possible here.
+5. Run `npm run build` and publish `dist/`. `dist/config.js` is a separate runtime script, so an operator can also update the identifiers in the export without rebuilding; keep the source copy in sync for future builds.
+6. On the real public origin: open the page, choose **Submit a project → Verify with Twitter**, complete the Twitter login, submit a test project, and confirm it appears through the public REST read (`GET /rest/v1/projects` with the anon key). Confirm anonymous insert, update and delete attempts are rejected. These live checks were not possible here.
 
-The auth adapter uses the official, pinned, low-level `@privy-io/js-sdk-core` SDK with OAuth PKCE and browser local-storage sessions. It requires HTTPS (or localhost) and accessible browser storage. **Privy CAPTCHA-enabled login is not implemented**: use an app without that optional setting, or implement supported CAPTCHA handling before enabling it. Custom HTTP-only-cookie proxy sessions are also outside this adapter. See [auth implementation notes](artifacts/auth-notes.md) and [Privy's CAPTCHA documentation](https://docs.privy.io/authentication/user-authentication/captcha). No wallets are connected, created, or transacted with; `viem` is an SDK dependency only.
+### How verification works
 
-## What gets published
+- **Verify with Twitter** generates a PKCE verifier, stores it in local storage, remembers that the dialog should reopen, and sends the browser to `/auth/v1/authorize?provider=twitter&code_challenge=…`.
+- Supabase Auth completes the Twitter OAuth exchange and returns to the page with `?code=…`. The adapter exchanges it at `/auth/v1/token?grant_type=pkce`, removes the single-use parameters from the address bar, and keeps the session (access token, refresh token, expiry, handle) in local storage.
+- The Twitter handle is read only from the `twitter` entry in the user's `identities`, which Supabase Auth populates from the provider. Editable `user_metadata` is ignored on both client and server.
+- Sessions refresh with `/auth/v1/token?grant_type=refresh_token` when the stored token is about to expire. **Not you? Sign out** inside the form clears the session and calls `/auth/v1/logout`.
+- The Edge Function receives the user's access token, asks Supabase Auth (`GET /auth/v1/user`) who it belongs to, requires a Twitter identity, and stores the handle it returns. Client-supplied identity fields are discarded.
 
-The form collects exactly five project details: Twitter account (read-only after verification), project username, contract address, project description, and wallet address. All five are public. A separate consent checkbox explains this before publishing. Form data stays in memory until submission; closing the dialog discards an unfinished draft.
+Twitter verification confirms access to the account. It does not prove ownership of the contract or wallet, and the site does not endorse submissions.
 
-The server validates the Privy token and retrieves its subject from Privy to derive the Twitter account. It ignores any client-provided Twitter identity. Anonymous users can read the directory; only the server can insert a validated submission. A failed request preserves the form, and success appears only after the server returns a stored record.
+## What gets submitted
 
-Assumptions: addresses are nonzero EVM addresses; usernames are 3–32 letters/numbers/underscores/hyphens; descriptions are 20–1,000 characters. One submission is allowed per contract address, regardless of chain. Twitter verification does not prove contract/wallet ownership. Cards classify descriptions by agent/tool keywords, falling back to Community; these categories are discovery aids, not submitted claims. There is no wallet transaction, project endorsement, user editing/deletion flow, or moderation/rate-limit system. Operators can manage records in Supabase.
+The form collects exactly five details: Twitter account (read-only after verification), project username, contract address, project description and wallet address. All five are public; a consent checkbox states this before submitting. Form data stays in memory until it is sent, and a failed request keeps everything entered so it can be retried. Closing the dialog discards an unfinished draft.
+
+Assumptions: addresses are nonzero EVM addresses; usernames are 3–32 letters, numbers, underscores or hyphens; descriptions are 20–1,000 characters; one submission per contract address. There is no directory page any more (the request removed all other text and controls), but every stored submission remains publicly readable through the Supabase REST API, and `fetchProjects` in `src/lib/submissions.ts` still reads them if a listing is wanted later.
 
 ## Publish the static export
 
-Upload **the contents of `dist/`** to your static host, including `assets/`, `fonts/`, `images/`, `favicon.svg`, and `config.js`. The host does not need Node or a build step. Keep `dist/index.html` alongside its assets in the submission; do not upload only the source.
+Upload **the contents of `dist/`**: `index.html`, `assets/`, `fonts/`, `images/`, `favicon.svg` and `config.js`. The host needs no Node or build step. Vite uses `base: './'`, so script, style, font and image URLs are relative and work under a gateway subpath or an ENS name. There is no client-side routing, so no rewrite rules are needed. If hosting under `/some/path/`, use its trailing-slash URL and add that exact URL to the Supabase redirect allow list.
 
-Vite uses `base: './'`. Exported script, CSS, image and font URLs resolve relative to the page and support a gateway subpath. Navigation uses hashes/native dialogs, so no SPA rewrite rules are required. Fonts and artwork are bundled locally; real authentication and database operations still require the configured hosted services. If hosting under `/some/path/`, use its trailing-slash URL and allowlist that exact OAuth return URL.
-
-No ignore file was added or changed. During this assignment dependencies, package caches and builds ran in `/tmp/pepe-collective-build`; the clean finished export and lockfile were copied back. No generated dependency directories or archives are included. See the byte accounting in [validation](artifacts/validation.md).
+No ignore file was added or changed. Dependencies were installed into `node_modules/` for the checks below and removed before submission; no generated dependency directories or archives are included.
 
 ## Checks actually performed
 
-On 2026-10-02, with Node 22.22.1, TypeScript 5.8.3 and Vite 6.3.5:
+On 2026-10-02 with Node 22.23.3, TypeScript 5.8.3, Vite 6.3.5 and Vitest 3.2.3:
 
 | Check | Actual result |
 | --- | --- |
 | `npm run typecheck` | Passed, exit 0. |
-| `npm run build` | Passed, exit 0; final `dist/` inspected and cleaned of stale chunks. |
-| `npm test` | 20 tests passed: auth/session/callback handling, directory interactions and form validation/submission/error flows. |
+| `npm test` | 18 tests passed in 3 files: Supabase Auth adapter (preview fail-closed, stored session reuse and refresh, PKCE callback exchange and URL cleanup, cancelled callbacks, missing Twitter identity, OAuth start parameters), single-action page (one button, dialog open/close, focus return, resume after redirect) and the submission form (gate, validation and focus, consent, token use, failure retention, expired session). |
 | `npm run test:backend` | 9 tests passed: validation, trusted identity, CORS, request bounds, duplicates, pagination and transport. |
-| `deno task --config backend/deno.json check` | Passed using Deno 2.5.6. |
-| `deno task --config backend/deno.json test` | 3 signed-JWT tests passed, with Privy/database HTTP responses mocked. |
-| Chromium production preview | `/preview/` checked at 320, 390, 768, 1024 and 1440 CSS pixels; no page overflow at those widths. Search, filters, sort, complete details, keyboard dialogs, mobile navigation and unavailable-auth recovery exercised. |
-| Form browser fixture | The production UI was exercised with intercepted test-only auth/API responses: five fields, consent, failure retention, retry and successful card insertion. This is not live OAuth or persistence evidence. |
-| Accessibility | axe-core 4.10.3 reported no violations in the checked directory, sign-in, information dialog and authenticated form fixture states. Keyboard focus, text enlargement, reduced motion and selected contrast pairs were also checked. |
+| `npm run build` | Passed, exit 0; `dist/` regenerated after the last source change. The one notice (`config.js` is not bundled) is intentional. |
+| Deno tasks (`backend/deno.json`) | **Not run.** Deno is not installed on this machine. `backend/tests/auth.test.ts` was rewritten for the new function but has not been executed. |
+| Chromium production export | `dist/index.html` opened at 1440×900, 390×844 and 320×568 CSS pixels; no horizontal overflow at any width, nor at 320px with the root font size at 200%. Keyboard: Tab reaches the only button with a visible ring, Enter opens the dialog, Escape closes it and focus returns to the button. Console had no errors or warnings on the unconfigured page; all eight static resources loaded with relative URLs. |
+| Form browser fixture | With `dist/config.js` temporarily pointed at `http://localhost:1` and a verified session seeded in local storage: the dialog reopened on the form; empty submit marked all five controls invalid, showed errors beside them and focused the first; valid data produced a network failure message with every value and the consent state kept; **Sign out** returned to the verification step with no stale error. The fixture config was restored afterwards. This is not live OAuth or persistence evidence. |
+| Better Interface review | Six domains reviewed; see [docs/validation.md](docs/validation.md). |
 
-The production build reports two nonfatal notices: `config.js` is intentionally a separate runtime script, and the lazy-loaded Privy chunk is over Vite's 500 kB advisory size. The auth chunk is not loaded by the unconfigured preview. Initial installation failed because the default npm cache was read-only; installing with a temporary cache succeeded. Initial local preview port 4173 was occupied; checks ran on 4188 instead.
-
-See [artifacts/validation.md](artifacts/validation.md) for all six Better Interface domains, observed findings and fixes, screenshots, coverage and limits. No live Twitter OAuth, deployed Supabase/RLS, physical device, screen reader, native browser zoom, or full accessibility certification is claimed. [DESIGN.md](DESIGN.md) documents the final source. [licenses/NOTICE.md](licenses/NOTICE.md) preserves design-guide, font and artwork attribution.
+Limitations: no live Twitter OAuth, no deployed Supabase project or RLS run, no Deno execution, no screen reader, no physical device, and no browser-native zoom (root font enlargement was used instead). The browser tool could not write screenshot files into this workspace, so screenshots were inspected inline and are not committed. [DESIGN.md](DESIGN.md) documents the final source; [licenses/NOTICE.md](licenses/NOTICE.md) keeps design-guide, font and artwork attribution.

@@ -1,5 +1,6 @@
 project_id = "pond-project-directory"
 
 [functions.submit-project]
-# A Privy JWT is verified by the function; it is not a Supabase Auth JWT.
+# The function confirms the caller's Supabase Auth session itself (GET /auth/v1/user) and
+# requires a Twitter identity on it. The gateway check alone would also accept the anon key.
 verify_jwt = false
