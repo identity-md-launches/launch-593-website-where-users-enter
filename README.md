@@ -1,6 +1,6 @@
-# Pepe Collective
+# Identity MD hackathon · Pepe Collective
 
-Restored the first website version, commit `91c8c03f61c6a7388afd76825b054fc600d5e3d6`: the forest-green hero and original Pepe artwork, light public directory, search, categories, sorting, full project details, information dialogs and Privy Twitter sign-in before the five-detail submission form. One responsive correction keeps all navigation destinations available at tablet widths.
+The existing Pepe Collective site now uses **Small pepes** in its hero, collective dialog, footer and page title. The hero includes the requested text: “Identity MD hackathon, organised by the community. Judged by IMD ai agents”. The canonical URL, Open Graph URL and visible footer link point to **https://hackathon.sites.imd.fun/**. The forest-green artwork, light public directory and submission flow remain in place. Mobile information dialogs now return keyboard focus to the menu button when closed.
 
 `dist/` contains the finished static export alongside the source and unchanged `package-lock.json`. Without service configuration, the site provides six clearly labeled fictional examples. **Live Twitter sign-in and public publishing require a configured Privy app and Supabase backend.** No live service configuration was supplied; the preview explains unavailable sign-in and never pretends to publish.
 
@@ -25,7 +25,7 @@ npm run preview         # Serve the built export
 
 A build-free preview also works with `python3 -m http.server 8080 --directory dist`. Serve over HTTP, rather than opening the HTML as a local file. For the backend's additional JWT tests, install Deno separately and run `deno task --frozen check` and `deno task --frozen test` from `backend/`.
 
-This restoration used an isolated `/tmp` source copy for installation and builds, keeping dependency folders and caches outside the repository. All existing package manifests, lockfiles and build configuration remain unchanged. No ignore file was added or modified.
+This update used an isolated `/tmp` source copy for installation and builds, keeping dependency folders and caches outside the repository. All existing package manifests, lockfiles and build configuration remain unchanged. No ignore file was added or modified.
 
 ## Configure live submissions
 
@@ -45,7 +45,7 @@ This restoration used an isolated `/tmp` source copy for installation and builds
 4. Rebuild and publish `dist/`. `dist/config.js` remains a separate runtime script; if an operator edits that exported file, keep `public/config.js` synchronized for future builds.
 5. On the final origin, complete Twitter login and publish a test project. Confirm the record appears in a separate signed-out browser and that anonymous database writes are rejected. These deployment checks have not been performed here.
 
-The restored adapter uses the pinned `@privy-io/js-sdk-core` SDK with PKCE and browser-local sessions. It requires HTTPS or localhost and available browser storage. Optional Privy CAPTCHA handling and custom HTTP-only-cookie proxy sessions are not implemented. No wallet is connected, created or transacted with; the existing `viem` dependency supports the SDK.
+The existing adapter uses the pinned `@privy-io/js-sdk-core` SDK with PKCE and browser-local sessions. It requires HTTPS or localhost and available browser storage. Optional Privy CAPTCHA handling and custom HTTP-only-cookie proxy sessions are not implemented. No wallet is connected, created or transacted with; the existing `viem` dependency supports the SDK.
 
 The form publishes exactly five details: authenticated Twitter handle, project username, EVM contract address, project description and public EVM wallet address. All are public, with explicit consent before publishing. The server derives the Twitter identity from Privy rather than client input. Failed requests retain input; success follows a server-returned record. Closing the form discards an unfinished draft.
 
@@ -53,7 +53,9 @@ Usernames accept 3–32 letters, numbers, underscores or hyphens; descriptions a
 
 ## Publish the static site
 
-Publish **all contents of `dist/`**, including `index.html`, `assets/`, `fonts/`, `images/`, `favicon.svg` and `config.js`. The publisher serves this export directly and needs no build step. The site's existing hosting name is `pepe-collective-small-frogs-big.site.identitymd.eth`; this task prepares its next version without performing a deployment.
+Publish **all contents of `dist/`**, including `index.html`, `assets/`, `fonts/`, `images/`, `favicon.svg` and `config.js`. The publisher serves this export directly and needs no build step. Publish at **https://hackathon.sites.imd.fun/** and configure that hostname in the hosting provider, including its required DNS mapping and HTTPS certificate. Update Privy's allowed origin to `https://hackathon.sites.imd.fun`, its callback URL to `https://hackathon.sites.imd.fun/`, and the backend's `ALLOWED_ORIGINS` to include `https://hackathon.sites.imd.fun` before enabling live submissions. No particular DNS record target is assumed: use the value supplied by the hosting provider.
+
+**Domain routing is a remaining deployment step.** This repository sets the intended URL; editing canonical metadata does not change DNS or the publisher's domain mapping. The supplied history describes a prior ENS/IPFS hosting name. No hosting-management capability or production service configuration was available in this assignment, so neither the live hostname nor provider allowlists were changed or verified. No redirect from the previous hostname is implemented.
 
 Vite retains `base: './'`. Script/style/image URLs and the built CSS's font URLs are relative, and navigation uses hashes and dialogs. No server rewrite is required. Use a trailing slash when hosting at a subpath, and allowlist that exact URL for OAuth. Fonts and artwork are bundled locally; real authentication and persistence require their hosted services.
 
@@ -61,21 +63,20 @@ Keep generated dependencies, caches and archives outside Git. The delivered expo
 
 ## Checks actually performed
 
-2026-10-02, Node 22.22.1, TypeScript 5.8.3, Vite 6.3.5, Vitest 3.2.3 and Deno 2.5.6:
+2026-10-02, Node 22.22.1, TypeScript 5.8.3, Vite 6.3.5, Vitest 3.2.3 and Chromium 145.0.7632.6:
 
 | Check | Result |
 | --- | --- |
-| `npm ci --cache <temporary directory> --no-audit --no-fund` | Passed; 203 locked packages installed outside the repository. |
-| `npm run typecheck` | Passed, exit 0. |
-| `npm test` | 20 tests passed across authentication, directory interactions and submission flows. |
-| `npm run test:backend` | 9 tests passed. |
-| `deno task --frozen check` / `deno task --frozen test` | Passed; 3 JWT/identity tests passed. Lockfile unchanged. |
-| `npm run build` | Passed after the final source changes; clean `dist/` copied back. |
-| Chromium production export at `/preview/` | Search, categories, empty/reset, sort, details/copy, keyboard dialogs, mobile/tablet navigation and unavailable-auth recovery passed. No horizontal overflow at 320, 390, 672, 673, 768, 880, 1024 or 1440 CSS pixels. |
-| Browser form fixtures | Verified required fields/consent, first-error focus, failed-save retention, retry and successful directory insertion with intercepted SDK/API responses. No live authentication or persistence claim. |
-| Better Interface | All six domains reviewed. The tablet navigation omission was fixed. axe-core 4.13.0 reported zero violations in checked directory, sign-in, information and form states; two dialog scans left contrast items requiring manual review. |
-| Final unconfigured preview | All eight initial document/runtime requests returned 200; both fonts loaded; console reported 0 errors and 0 warnings. |
+| `npm ci --cache /tmp/imd-hackathon-npm-cache --no-audit --no-fund` | Passed; 203 locked packages installed in an isolated `/tmp` project copy. |
+| `npm run typecheck` | Passed after the final source change. |
+| `npm test` | 21 tests passed: directory/navigation (6), authentication (9), submission (6). Includes the new mobile-dialog focus regression. |
+| `npm run test:backend` | 9 handler/transport tests passed; backend unchanged. |
+| `npm run build` | Passed after the final source change; complete export copied to `dist/`. |
+| Production export under `/preview/` | Requested content/metadata, hash navigation, search, categories, empty/reset, sort, details, copying, keyboard dialogs and unavailable-auth recovery passed. |
+| Responsive review | No page or new-paragraph horizontal overflow at 320, 390, 672, 673, 768, 880, 1024 and 1440 CSS pixels. Viewed desktop, mobile and tablet screenshots. |
+| Better Interface | All six domains reviewed; mobile-menu focus defect reproduced, fixed and rechecked. axe-core 4.13.0 reported zero violations in directory, collective-dialog and sign-in states; dialog contrast incompletes received selected manual measurements. |
+| Final resource/console check | Eight document/runtime responses returned 200 or 304; both fonts loaded; zero console errors, warnings or failed requests. |
 
-Build notices: `config.js` is intentionally left as a runtime script; the lazy Privy chunk is 718.23 kB, above Vite's advisory 500 kB threshold. It is not loaded by the unconfigured preview.
+Build notices: `config.js` intentionally remains a separate runtime script; the existing lazy Privy chunk is 718.23 kB, above Vite's advisory 500 kB threshold. Required runtime chunks are retained.
 
-See [docs/validation.md](docs/validation.md) for findings, evidence, screenshots, byte accounting and limitations. No live OAuth, database/RLS deployment, screen-reader session, physical device, Firefox/Safari check or browser-native zoom was performed. Root-font enlargement was checked separately. These are worker-side results, not independent certification.
+See [docs/validation.md](docs/validation.md) for the current review, measured pairs, screenshots, byte accounting and limitations. The [restoration record](docs/validation-restoration.md) is historical, not a fresh run. No live OAuth, real public write, production DNS/HTTPS, provider allowlist change, Deno JWT rerun, screen-reader session, physical device, Firefox/Safari or browser-native zoom check was performed. Authenticated submission behavior was tested with mocked services; text enlargement was checked separately. These results are worker-reported, not independent certification.

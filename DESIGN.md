@@ -2,9 +2,11 @@
 
 ## Overview
 
-This implementation restores the first Pepe Collective website from commit `91c8c03f61c6a7388afd76825b054fc600d5e3d6`: a public directory for people building with AI, with Privy Twitter authentication before submission. The original “pepes armed with AI working together” illustration, forest-green hero, lime actions, warm off-white page, white cards and green accents establish its visual character.
+This implementation presents the community-organised Identity MD hackathon within the existing Pepe Collective website: a public directory for people building with AI, with Privy Twitter authentication before submission. Its headline is “Small pepes. Big intelligence.” The hero adds the requested description, “Identity MD hackathon, organised by the community. Judged by IMD ai agents”. The original “pepes armed with AI working together” illustration, forest-green hero, lime actions, warm off-white page, white cards and green accents establish its visual character.
 
 The page has navigation, a split hero, three principles, a searchable directory, an invitation banner and a footer. That composition belongs to this landing page; reusable choices are its content alignment, typography, surface colors, buttons, fields, cards and native dialogs. There is one implemented theme and no theme switch.
+
+The footer links to `https://hackathon.sites.imd.fun/`; `index.html` uses the same canonical and Open Graph URL, with a hackathon title and description. These source values identify the intended public address; hosting configuration and deployment status are documented separately in the README and validation record.
 
 The source of truth is [src/styles.css](src/styles.css), with page patterns in [src/App.tsx](src/App.tsx) and shared components in [src/components/](src/components/). This document describes source declarations and behavior. Actual build, interaction and rendered-check results, including coverage limitations, are recorded in [docs/validation.md](docs/validation.md).
 
@@ -46,6 +48,7 @@ Body text uses `Inter, Arial, sans-serif`; display text uses `--font-display: 'S
 | Role | Source declaration |
 | --- | --- |
 | Hero heading | Space Grotesk, 600, `clamp(2.65rem, 4.55vw, 3.75rem)`, line-height 1.06, tracking −2.8px before breakpoint overrides |
+| Hero supporting and hackathon copy | Inter, `--text-ui: .875rem`, line-height 1.75, `--text-on-dark-secondary`; 12px up to 55rem and 13px up to 42rem |
 | Directory heading | `--text-section: 2.25rem`, display face, 500, line-height 1.2, tracking −1.5px |
 | Project card heading | `--text-title: 1.25rem`, display face, 600, tracking −0.55px; 22px on mobile |
 | Dialog title | 21px display face, 600, tracking −0.5px; 19px on mobile |
@@ -59,13 +62,15 @@ The root also declares `--text-xs: .75rem` and `--text-body: 1rem`. Not all comp
 
 Headings use `text-wrap: balance`; paragraphs use `text-wrap: pretty`. Long handles, descriptions, project names and addresses use `overflow-wrap: anywhere`. Card descriptions clamp to three lines and builder handles can ellipsize; the detail dialog exposes complete information. Addresses remain selectable, and copy failure offers manual selection. Directory/filter counts and the description character count use tabular numerals. Dialog copy is constrained by panel width, with selected authentication/success paragraphs capped at 360/380px.
 
+The hero's `.hackathon-description` is a separate paragraph with `max-width: 44ch`. It uses natural wrapping without a forced line break, preserving the existing hierarchy between headline, supporting copy and submission action.
+
 ## Layout
 
 The shared `.container` is centered at `min(100%, 1304px)` with 32px inline padding. The header shares its maximum width and alignment. The body declares `min-width: 320px`. Logical inline/block properties carry most directional spacing; the current English interface does not implement locale or direction switching.
 
 Spacing tokens `--space-1/2/3/4/6/8/12` are 4/8/12/16/24/32/48px. Components also retain direct spacing values. Reuse the existing layout relationships rather than assuming every dimension derives from a token.
 
-The hero starts 32px below the header, uses `1.05fr 1fr` columns and a 425px minimum height. Copy has 40px top and 44px leading padding. Artwork fills the second column with `object-fit: cover` and a mask fading into the dark surface. Mobile moves artwork below the copy at a 3:2 aspect ratio.
+The hero starts 32px below the header, uses `1.05fr 1fr` columns and a 425px minimum height. Copy has 40px top and 44px leading padding. The hackathon paragraph follows the existing supporting copy with `margin-block-start: var(--space-3)` (12px), before the action row. Minimum height allows the panel to grow with its content. Artwork fills the second column with `object-fit: cover` and a mask fading into the dark surface. Mobile moves artwork below the copy at a 3:2 aspect ratio.
 
 The directory separates its heading, category/search toolbar, results/sort row and card grid. Cards begin in three equal `minmax(0, 1fr)` columns with 18px gaps. Filters and results wrap; search has a 180px minimum width. Card footers use `margin-block-start: auto` to align metadata. Form fields use two columns with 20px row/16px column gaps; description and wallet span the width.
 
@@ -97,11 +102,12 @@ Keep fields recognizable through their borders. Preserve the existing panel/card
 | Component or source pattern | Reuse and states |
 | --- | --- |
 | `.button`, `.button-primary`, `.button-secondary`, `.button-signin` in `src/styles.css` | Inline-flex actions, generally at least 46px high; lime primary, bordered light secondary and compact 42px sign-in variants. Hero action is at least 48px. Native disabled actions use opacity .65 and a wait cursor. |
-| Header/navigation in `src/App.tsx` | Hash links navigate to the page/directory; buttons open information dialogs. Mobile toggle exposes `aria-expanded` and an open/close name. Authentication replaces sign-in with the handle and sign-out action. |
+| Header/navigation in `src/App.tsx` | Hash links navigate to the page/directory; buttons open information dialogs. Mobile toggle exposes `aria-expanded` and an open/close name. `openInfo` focuses `menuToggle` before collapsing the mobile menu, so dialog cleanup returns focus to the persistent menu button. Authentication replaces sign-in with the handle and sign-out action. |
+| Footer in `src/App.tsx` | Retains the brand, “Small pepes. Big things.” tagline and information-dialog buttons. The underlined `hackathon.sites.imd.fun` anchor uses the public HTTPS address and opens in the same tab; footer groups stack at 42rem. |
 | `ProjectCard` in `src/App.tsx` | Local page pattern, not an exported library component. Props `project`, `index`, `open`; title opens full details. Category, account and Example/Public status are text, independently of color. |
 | `ProjectDetail` in `src/App.tsx` | Local full-record pattern: description, Twitter identity, username, contract and wallet. Copy controls show a check and announce feedback; real account links identify new-tab behavior. Examples include a fictional-data notice. |
 | Directory toolbar in `src/App.tsx` | Native category buttons use `aria-pressed`; labeled search supports clearing; native select changes newest/alphabetical sorting. Counts use `role="status"`. Empty search offers Clear filters; load failure offers Try again; no-data state offers submission. |
-| `Modal` in `src/components/Modal.tsx` | Exported props `title`, `children`, `onClose`, optional `wide`. Uses `showModal()`, accessible title, explicit non-submit close button, Escape/cancel handling and backdrop-click dismissal. Native modality supplies background inertness and focus containment; cleanup restores the originating element. |
+| `Modal` in `src/components/Modal.tsx` | Exported props `title`, `children`, `onClose`, optional `wide`. Uses `showModal()`, accessible title, explicit non-submit close button, Escape/cancel handling and backdrop-click dismissal. Native modality supplies background inertness and focus containment; cleanup restores the element focused before opening. For mobile information dialogs, `openInfo` makes that element the persistent menu toggle. |
 | `Submission` in `src/components/Submission.tsx` | Exported callbacks `onPublished`, `onClose`. Privy Twitter gate precedes editable fields. Authenticated form has read-only Twitter plus username, EVM contract, description and public EVM wallet. Consent precedes publishing. |
 | Form field pattern in `Submission` | Persistent labels/hints; errors linked with `aria-describedby`; `aria-invalid`; first invalid field receives focus. Fieldset/publish action disable during requests. Failed save retains input; success follows a stored record returned by the server. |
 | `FrogMark`, `XMark`, `ProjectMark` in `src/components/Marks.tsx` | Shared inline SVG marks with six `.mark-*` project treatments. Lucide React supplies interface icons. `public/images/pepe-squad.webp` is the locally bundled original hero artwork. |

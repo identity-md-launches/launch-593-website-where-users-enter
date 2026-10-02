@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDown, ArrowRight, ArrowUpRight, Check, CheckCircle2, ChevronDown, Copy, Globe2, Leaf, LogOut, Search, ShieldCheck, Sparkles, Users, X } from 'lucide-react';
 import { useAuth } from './auth';
 import { backendConfig, hasBackend } from './config';
@@ -39,7 +39,7 @@ function ProjectDetail({ project, announce }: { project: DisplayProject; announc
 function Information({ type, submit }: { type: Info; submit: () => void }) {
   if (type === 'how') return <div className="info-content"><p>A few details connect your work to a whole collective.</p><ol className="how-steps"><li><span>01</span><div><h3>Start with your Twitter</h3><p>Sign in securely with Privy. Your verified account becomes the face behind your project.</p></div></li><li><span>02</span><div><h3>Share what you’re building</h3><p>Add your project username, EVM contract address, a description, and your public EVM wallet address.</p></div></li><li><span>03</span><div><h3>Join the public directory</h3><p>Confirm you’re ready to share. All five details go public so anyone can discover your work.</p></div></li></ol><button className="button button-primary" onClick={submit}>Submit your project<ArrowRight size={17} /></button></div>;
   if (type === 'public') return <div className="info-content"><p>Every published project can be read without signing in. The directory displays all five submitted details: Twitter account, project username, contract address, project information, and wallet address.</p><h3>Share only public information</h3><p>Use a public wallet address. Never enter seed phrases, private keys, or confidential project information. Signing in alone does not publish a project.</p><h3>What verification means</h3><p>Privy verifies access to your Twitter account. The directory does not verify ownership of your contract or wallet and does not endorse listed projects.</p><h3>About this preview</h3><p>When live services are not configured, the directory shows clearly labeled fictional examples. Examples are never represented as public submissions. The preview does not save your form data.</p></div>;
-  return <div className="info-content"><div className="about-symbol"><FrogMark /></div><h3>Small frogs. Shared ambition.</h3><p>Pepe Collective is a gathering place for people making things with AI. The experimenters. The late-night builders. The ones who think a good idea gets better when you share it.</p><p>Find a project that sparks something. Meet the person behind it. Bring your own corner of the internet to the pond.</p><div className="public-callout"><Leaf size={21} /><p>Independent builders. Open projects.<br /><strong>A little more possible, together.</strong></p></div></div>;
+  return <div className="info-content"><div className="about-symbol"><FrogMark /></div><h3>Small pepes. Shared ambition.</h3><p>Pepe Collective is a gathering place for people making things with AI. The experimenters. The late-night builders. The ones who think a good idea gets better when you share it.</p><p>Find a project that sparks something. Meet the person behind it. Bring your own corner of the internet to the pond.</p><div className="public-callout"><Leaf size={21} /><p>Independent builders. Open projects.<br /><strong>A little more possible, together.</strong></p></div></div>;
 }
 
 export default function App() {
@@ -55,6 +55,7 @@ export default function App() {
   const [info, setInfo] = useState<Info | null>(null);
   const [notice, setNotice] = useState('');
   const [mobileNav, setMobileNav] = useState(false);
+  const menuToggle = useRef<HTMLButtonElement>(null);
 
   const reload = useCallback(async () => {
     if (!hasBackend) return;
@@ -65,6 +66,10 @@ export default function App() {
   }, []);
   useEffect(() => { void reload(); }, [reload]);
   const filtered = useMemo(() => filterProjects(projects, query, category, sort), [projects, query, category, sort]);
+  function openInfo(type: Info) {
+    if (mobileNav) menuToggle.current?.focus();
+    setInfo(type); setMobileNav(false);
+  }
   function openSubmit() { setInfo(null); setMobileNav(false); setSubmitting(true); }
   function publish(project: Project) { setProjects(current => [project, ...current.filter(item => item.id !== project.id)]); setQuery(''); setCategory('All projects'); setSort('newest'); }
 
@@ -72,13 +77,13 @@ export default function App() {
     <a href="#main" className="skip-link">Skip to content</a>
     <header className="site-header"><div className="header-inner">
       <a className="brand" href="#" aria-label="Pepe Collective home"><span className="brand-icon"><FrogMark /></span><span>pepe<span className="brand-second">collective</span><span className="brand-dot">.</span></span></a>
-      <nav className={`navigation ${mobileNav ? 'nav-open' : ''}`} aria-label="Main navigation"><a href="#projects" className="nav-active" onClick={() => setMobileNav(false)}>Explore projects</a><button onClick={() => { setInfo('how'); setMobileNav(false); }}>How it works</button><button onClick={() => { setInfo('collective'); setMobileNav(false); }}>The collective<ArrowUpRight size={13} /></button></nav>
-      <div className="header-actions">{auth.authenticated && auth.twitterUsername ? <button className="button button-signin account-button" onClick={async () => { try { await auth.logout(); setNotice('You have signed out.'); } catch { setNotice('Unable to sign out. Please try again.'); } }}><span>@{auth.twitterUsername}</span><LogOut size={16} /><span className="sr-only">Sign out</span></button> : <button className="button button-signin" onClick={openSubmit}><XMark /><span>Sign in<span className="signin-long"> with Twitter</span></span></button>}<button className="mobile-menu icon-button" aria-expanded={mobileNav} aria-controls="mobile-nav" aria-label={mobileNav ? 'Close navigation' : 'Open navigation'} onClick={() => setMobileNav(!mobileNav)}>{mobileNav ? <X size={22} /> : <span className="menu-lines" />}</button></div>
-    </div>{mobileNav && <nav id="mobile-nav" className="mobile-navigation" aria-label="Mobile navigation"><a href="#projects" onClick={() => setMobileNav(false)}>Explore projects</a><button onClick={() => { setInfo('how'); setMobileNav(false); }}>How it works</button><button onClick={() => { setInfo('collective'); setMobileNav(false); }}>The collective</button></nav>}</header>
+      <nav className={`navigation ${mobileNav ? 'nav-open' : ''}`} aria-label="Main navigation"><a href="#projects" className="nav-active" onClick={() => setMobileNav(false)}>Explore projects</a><button onClick={() => openInfo('how')}>How it works</button><button onClick={() => openInfo('collective')}>The collective<ArrowUpRight size={13} /></button></nav>
+      <div className="header-actions">{auth.authenticated && auth.twitterUsername ? <button className="button button-signin account-button" onClick={async () => { try { await auth.logout(); setNotice('You have signed out.'); } catch { setNotice('Unable to sign out. Please try again.'); } }}><span>@{auth.twitterUsername}</span><LogOut size={16} /><span className="sr-only">Sign out</span></button> : <button className="button button-signin" onClick={openSubmit}><XMark /><span>Sign in<span className="signin-long"> with Twitter</span></span></button>}<button ref={menuToggle} className="mobile-menu icon-button" aria-expanded={mobileNav} aria-controls="mobile-nav" aria-label={mobileNav ? 'Close navigation' : 'Open navigation'} onClick={() => setMobileNav(!mobileNav)}>{mobileNav ? <X size={22} /> : <span className="menu-lines" />}</button></div>
+    </div>{mobileNav && <nav id="mobile-nav" className="mobile-navigation" aria-label="Mobile navigation"><a href="#projects" onClick={() => setMobileNav(false)}>Explore projects</a><button onClick={() => openInfo('how')}>How it works</button><button onClick={() => openInfo('collective')}>The collective</button></nav>}</header>
 
     <main id="main" className="container">
       <section className="hero" aria-labelledby="hero-title">
-        <div className="hero-copy"><span className="hero-eyebrow"><span className="status-dot" /> A pond of possibilities</span><h1 id="hero-title">Small frogs.<br /><span>Big intelligence.</span></h1><p>Armed with AI. Powered by each other.<br />A collective of builders turning wild ideas into<br className="desktop-break" /> things that matter.</p><div className="hero-actions"><button className="button button-primary" onClick={openSubmit}>Submit your project<ArrowUpRight size={18} /></button><a className="hero-explore" href="#projects">Explore the pond<ArrowDown size={15} /></a></div><div className="hero-note"><span className="tiny-frogs"><FrogMark /><FrogMark /><FrogMark /></span><span>For the builders. By the builders.</span></div></div>
+        <div className="hero-copy"><span className="hero-eyebrow"><span className="status-dot" /> A pond of possibilities</span><h1 id="hero-title">Small pepes.<br /><span>Big intelligence.</span></h1><p>Armed with AI. Powered by each other.<br />A collective of builders turning wild ideas into<br className="desktop-break" /> things that matter.</p><p className="hackathon-description">Identity MD hackathon, organised by the community. Judged by IMD ai agents</p><div className="hero-actions"><button className="button button-primary" onClick={openSubmit}>Submit your project<ArrowUpRight size={18} /></button><a className="hero-explore" href="#projects">Explore the pond<ArrowDown size={15} /></a></div><div className="hero-note"><span className="tiny-frogs"><FrogMark /><FrogMark /><FrogMark /></span><span>For the builders. By the builders.</span></div></div>
         <div className="hero-art"><img src="./images/pepe-squad.webp" width="1536" height="1024" alt="Three Pepe frogs working together with an AI chip, laptop, and a friendly robot companion." fetchPriority="high" /><div className="art-caption"><span className="crosshair">+</span><span>Human ideas. Amphibian energy.</span><Sparkles size={14} /></div></div>
       </section>
 
@@ -94,7 +99,7 @@ export default function App() {
 
       <section className="join-banner"><span className="join-icon"><FrogMark /><Sparkles size={18} /></span><div><h2>There’s room for one more frog.</h2><p>Your idea belongs here. Let’s see what you’re building.</p></div><button className="button button-primary" onClick={openSubmit}>Join the collective<ArrowUpRight size={17} /></button></section>
     </main>
-    <footer className="site-footer container"><div><a className="footer-brand" href="#"><FrogMark />pepe collective.</a><span>Small frogs. Big things.</span></div><nav aria-label="Footer navigation"><button onClick={() => setInfo('how')}>How it works</button><button onClick={() => setInfo('public')}>Public by design<ArrowUpRight size={13} /></button></nav><p>Made for the pond <Leaf size={14} /></p></footer>
+    <footer className="site-footer container"><div><a className="footer-brand" href="#"><FrogMark />pepe collective.</a><span>Small pepes. Big things.</span></div><nav aria-label="Footer navigation"><button onClick={() => setInfo('how')}>How it works</button><button onClick={() => setInfo('public')}>Public by design<ArrowUpRight size={13} /></button></nav><p><a href="https://hackathon.sites.imd.fun/">hackathon.sites.imd.fun</a></p></footer>
 
     <div className="sr-only" role="status">{notice}</div>
     {notice && <div className="toast"><CheckCircle2 size={17} /><span>{notice}</span><button className="icon-button" aria-label="Dismiss notification" onClick={() => setNotice('')}><X size={16} /></button></div>}

@@ -1,102 +1,93 @@
-# First-version restoration: validation
+# Hackathon update: validation
 
 ## Scope and assumptions
 
-The request “change the site back to the first version” means the first completed website in the pinned project history: `91c8c03f61c6a7388afd76825b054fc600d5e3d6`. Its source was recovered from that commit's GitHub archive and compared with the supplied workspace. The original landing page, directory, illustration, Privy adapter, public-submission backend and relevant tests were restored. Existing manifests/lockfiles are identical across those versions and were preserved; all existing build configuration was also preserved.
+This bounded update continues the existing React/TypeScript/Vite site. It replaces all four user-facing instances of “Small frogs” with “Small pepes”, adds the exact requested hackathon sentence as a visible hero paragraph and HTML description, and sets `https://hackathon.sites.imd.fun/` in canonical/Open Graph metadata and the footer link. Existing directory, artwork and authentication/submission behavior are preserved. One reproduced keyboard-focus defect in the changed collective-dialog path is fixed.
 
-The rendered scope is the single landing page, directory/search/filter/sort/detail flows, information dialogs, compact navigation, sign-in gate and authenticated submission form. The original forest/lime hero and light directory are authoritative. The only intentional frontend differences from that first source are the tablet navigation fix below and explicit type/decorative-icon attributes on the dialog close button.
+The static deliverable is `dist/`, with source, unchanged manifest/lockfiles and local runtime assets. Empty service identifiers still produce six explicitly fictional examples and unavailable-sign-in messaging. No live OAuth, public database write, hosting, DNS, redirect or on-chain action was performed. The new domain is the intended publishing destination: a repository edit cannot configure the external publisher or DNS. README documents the remaining hostname, HTTPS, OAuth callback and backend-origin configuration. No hosting-management capability was available.
 
-The export is `dist/`. Preview configuration has empty public identifiers, six fictional examples and no fake publishing. Tests with authenticated data use explicit mocks. No service, token or on-chain deployment was performed. The new publisher version is prepared for the existing hosting name; publishing was not performed in this task.
+Read the pinned project history, Better Interface workflow, all six domains' core principles, the documentation method and included license information. Preserved the existing design and attribution. This is a worker's evidence record, not independent certification.
 
 ## Better Interface coverage
 
-Read the pinned workflow, the core principles of all six domains and the implemented-design documentation section. Supporting keyboard/forms, responsive behavior, type wrapping and contrast guidance informed the checks. The table records checks actually performed, not merely guide sections read.
-
-| Domain | Coverage and evidence | Unperformed or not applicable |
+| Domain | Coverage and actual evidence | Limitations |
 | --- | --- | --- |
-| Accessibility | **Checked.** Native links/buttons, one main/h1, labeled fields, `aria-pressed`, invalid/error associations, status/alert markup reviewed. Browser Enter/Tab/Escape dialog path, focus return, mobile menu and first-invalid-field focus exercised. Viewed the visible sign-in focus ring. axe-core scans detailed below. | Screen reader, every individual focus target/background and assistive announcements while native dialogs are open are **not verified**. No full conformance claim. |
-| Layout | **Checked.** Source grid/order/spacing and long-address wrapping; actual desktop, tablet and mobile screenshots; overflow measurements at eight widths; root-font enlargement. Found and fixed inaccessible tablet navigation. | Browser-native 200% zoom, physical devices, RTL and translated-content stress tests **not verified**. The product implements English only. |
-| Writing | **Checked.** Restored action labels, example notices, public-data consent, failed-save retry, field format guidance and unavailable-sign-in copy match their behavior. No success is shown before the server/mock returns a record. | Live provider/backend error variants **not verified**; original product voice preserved. |
-| Typography | **Checked.** Source fonts, weights, sizes, line heights and clamps; both local font faces reported loaded. Viewed heading/card wrapping at desktop/mobile and full values in detail/form states. Inputs are 16px on mobile. | Native iOS focus zoom and cross-platform font rendering **not verified**. Original small decorative metadata retained. |
-| Colors | **Checked.** Actual hex tokens/roles, normal/error/selected states, computed opaque foreground/background pairs and selected contrast calculations below. Errors also have text; selection has pressed state. | All gradient/image/alpha combinations, every hover pair and forced-colors rendering **not verified**. No second theme exists. |
-| UI | **Checked.** Original panels, borders, marks, icons, field/error/empty/loading state implementations reviewed; directory empty reset, form busy/error/retry/success tested. Reduced-motion emulation yielded `transition-duration: 0s` and `scroll-behavior: auto`. | 10% animation-panel playback **not performed**. No autoplay, theme toggle or staged page-load animation exists. |
+| Accessibility | **Checked.** Native buttons/links, one main/h1, labels, live states, focus CSS and dialog semantics reviewed. Enter/Escape, copy, submit gate and focus return exercised in Chromium; new mobile focus regression passes. Viewed lime primary-action focus and green menu focus. axe results below. | No screen-reader session, every individual focus/background pair, forced-colors rendering or full conformance assessment. |
+| Layout | **Checked.** Added paragraph follows existing hero reading order before actions, uses minimum-height layout, a 44ch maximum and 12px separation. Viewed desktop/mobile/tablet screenshots and measured overflow at eight widths. | No native browser zoom, physical-device, translated-content or RTL testing; only English is implemented. |
+| Writing | **Checked.** Exact requested sentence preserved, including “organised” and “ai”; updated hero/dialog/footer/title consistently. URL is explicit in metadata/footer/publishing docs. Search reset, fictional-data notice and unavailable sign-in match behavior. | Live service-specific errors and public writes not exercised. Unrelated frog/pond brand language retained. |
+| Typography | **Checked.** Existing local Space Grotesk/Inter, weights, wrapping and responsive copy sizes reviewed; both fonts loaded. New paragraph is 14px desktop, 12px tablet, 13px mobile with line-height 1.75 and no truncation. | No Safari/iOS input-zoom or cross-platform font check. Existing compact supporting labels retained. |
+| Colors | **Checked.** Existing semantic hex tokens reused; selected rendered foreground/background pairs measured below. Errors retain text and category buttons expose `aria-pressed`. | Every image/gradient/alpha/hover pair remains unverified. One theme; dark-mode variants are not applicable. |
+| UI | **Checked.** Existing panel/button/card/dialog patterns preserved. Search/filter/sort, empty reset, full details, copy feedback, sign-in error and reduced-motion behavior checked in export. Existing mocked form tests cover invalid/busy/error/retry/success. | No animation-panel playback at 10% speed or real authenticated-form browser session in this update; no new component or animation system. |
 
 ## Findings and fixes
 
-| Severity | Location | Evidence and effect | Correction and recheck |
+| Severity | Source location | Evidence and effect | Fix and recheck |
 | --- | --- | --- | --- |
-| Medium | `src/styles.css:314` (first-version rule formerly at line 318) | At 768px the original stylesheet hid “The collective” but offered no compact menu. Browser accessible-button count was 0 and Open navigation was invisible, so that information destination was unreachable. | Activate the existing compact navigation at 55rem, including its icon and expanded links, instead of dropping a destination. Final export at 768px opens “Welcome to the collective.” from the menu. Zero overflow also confirmed around 672/673/880px boundaries. |
-| Low | `src/components/Modal.tsx:19` | Original close button omitted its explicit non-submit type and exposed its decorative X SVG. Source review identified a reusable-component semantic weakness. | Retained `type="button"` and `aria-hidden="true"` from the newer implementation. Frontend tests and final browser Escape/open/close/focus checks pass. |
-| Medium | `src/auth.tsx:1`, `backend/supabase/functions/submit-project/index.ts:1` | Restoring only the old appearance would leave the newer Supabase Auth adapter incompatible with the original Privy-gated workflow. | Restored frontend and backend Privy verification together, plus original config shape and tests. 9 frontend auth cases and 3 signed-token backend cases pass; no live authentication claim. |
-| Low | `README.md:1`, `DESIGN.md:1`, `backend/README.md:1` | Supplied documentation described the later single-action screen and Supabase Twitter adapter; historical first-version docs linked absent evidence files. | Rewrote documentation around final source and current checks. Checked repository-relative documentation links and token names. |
+| Medium | `src/App.tsx:69`, `src/App.tsx:82`; dialog lifecycle at `src/components/Modal.tsx:7` | At 390px, opening The collective from the mobile menu unmounted its focused button before the dialog captured focus. Escape left `document.activeElement` as BODY, losing keyboard position. | `menuToggle` ref and `openInfo` focus the persistent menu control before hiding the menu. Final export returns to Open navigation at 320, 390 and 768px. Added `tests/app.test.tsx:92` regression; all 21 tests pass. Viewed/saved the 768px focus ring. |
+| Low | `src/App.tsx:42`, `src/App.tsx:86`, `src/App.tsx:102`, `index.html:7` | Existing copy, page title and metadata did not describe the requested hackathon; previous publishing docs named the old host. | Updated all four Small pepes instances, visible hackathon text, description/title, canonical/Open Graph URL, footer and publishing docs. Browser checked exact sentence, title, link and canonical; static integrity check covers exported metadata. |
 
-No reproduced blocker remains in the restored static-preview scope. Live-service activation remains an external configuration limitation.
+The new paragraph uses `src/styles.css:110`, preserving the established color/type roles and avoiding fixed height or truncation. No further reproduced blocker remains in the static-preview scope. External domain routing and live service activation remain deployment limitations.
 
 ## Commands and actual results
 
-Run on 2026-10-02. Frontend checks used Node 22.22.1, TypeScript 5.8.3, Vitest 3.2.3 and Vite 6.3.5. To avoid writing repository dependency paths, copied source, tests, public assets and unchanged configuration into `/tmp/pepe-restore-build-_jrvoivc`; npm cache was also outside the repository. The final built `dist/` was copied back in full after the last source change.
+2026-10-02; Node 22.22.1, TypeScript 5.8.3, Vite 6.3.5, Vitest 3.2.3. Source, tests, public assets and existing configuration were copied into `/tmp/imd-hackathon-build-j1g5ie66`. Dependencies and cache stayed outside the repository. Final source and export were checked against that build copy.
 
-| Command | Result |
+| Command | Actual result |
 | --- | --- |
-| `npm ci --cache <temporary directory> --no-audit --no-fund` | Exit 0; installed 203 locked packages. One upstream `whatwg-encoding` deprecation notice. |
-| `npm run typecheck` | Exit 0. Repeated after the final source corrections. |
-| `npm test` | Exit 0: 20 tests, 3 files. Directory (5), Privy/session/callback adapter (9), submission (6). Final run 7.35s. |
-| `npm run test:backend` | Exit 0: 9 tests, including TypeScript compilation. Covers validation, trusted identity, failed authentication, CORS/methods, malformed/oversized requests, duplicates, transport and public pagination. |
-| `deno task --frozen check` from `backend/` | Exit 0 with Deno 2.5.6 / TypeScript 5.9.2. Checked actual restored Edge Function. |
-| `deno task --frozen test` from `backend/` | Exit 0: 3 tests passed, 0 failed. Synthetic ES256 tokens; mocked Privy/database responses. Deno cache external; config and lock hashes unchanged. |
-| `npm run build` | Exit 0 after the final source corrections. 2,999 modules, 7.34s. Final assets: `index-C532xPy6.js`, `index-BkcY5jBf.css`, lazy `index-DK-7tFL_.js` and `ccip-DL437w1e.js`. |
+| `npm ci --cache /tmp/imd-hackathon-npm-cache --no-audit --no-fund` | Exit 0; 203 locked packages. Upstream whatwg-encoding deprecation notice. |
+| `npm run typecheck` | Exit 0 after final source change. |
+| `npm test` | Exit 0 after final change; 21 tests in 3 files, 7.89s. Directory/navigation 6, authentication 9, submission 6. |
+| `npm run test:backend` | Exit 0; 9 handler/transport tests. Backend source unchanged. |
+| `npm run build` | Exit 0 after final change; 2,999 modules, 7.26s. Complete `dist/` copied back without stale chunks. |
 
-The build's two advisory notices are expected: `config.js` remains a separate non-module runtime script; the lazy Privy chunk is 718.23 kB (185.40 kB gzip), above Vite's 500 kB warning threshold. All required chunks remain in the export. No source maps, dependency archives or cache directories are delivered.
+Final chunks: `index-BV1MM2w2.js`, `index-BcHP675B.css`, lazy `index-CtXGwjGD.js` and `ccip-DtdB4u7e.js`. Two existing build advisories remain: non-module `config.js` is intentionally served as a separate runtime script, and the lazy Privy chunk is 718.23 kB (185.40 kB gzip), above the 500 kB advisory threshold. All required runtime chunks remain delivered. No package/build configuration was changed.
 
-The initial attempt to inspect old Git objects could not fetch into the read-only `.git` area; recovery used GitHub's immutable commit archive in `/tmp` instead. An early export-copy check correctly stopped with “Build not finished”; copying succeeded after the build exited. Neither event is represented as a passed build or a source failure.
+Deno JWT tests recorded by the preceding assignment were not rerun. The current frontend tests explicitly mock authentication and submission services; they verify consent, first-invalid-field focus, normalized input, busy state, server-confirmed success, retained data after failure and retry. They do not establish live service availability.
 
-## Production-browser evidence
+## Production-browser checks
 
-Chromium inspected the actual exported files at `http://127.0.0.1:4189/preview/`, using a temporary foreground Python preview process and an external `/tmp` symlink to `dist/`. The process was bounded and closed after checking. The local URL is verification infrastructure, not the published website.
+Chromium **145.0.7632.6** loaded the final export at `http://127.0.0.1:41153/preview/`. The expected tool preview sidecar was absent, so a temporary bounded Python HTTP preview served `dist/` via a scratch symlink. The port is local verification infrastructure, not the public URL.
 
-- Search matched `SWARM_PROTOCOL`; clear restored six cards. Developer tools returned two; a nonexistent query returned zero and Clear filters reset both controls. Alphabetical order was FrogStack, LilyPad, Pepe Research, Pond AI, Prompt Pond, Swarm Protocol. Newest restored Pond AI first.
-- Detail dialog exposed complete Twitter, project, description, contract and wallet values. Contract copying returned exactly `0x1111111111111111111111111111111111111111`. Escape returned focus to the initiating card. Unit tests independently cover copying/focus.
-- The primary action opened the Privy Twitter gate with no editable fields. Continue with Twitter showed the explicit unconfigured-preview error. Enter/Tab/Escape worked; the green 3px sign-in focus ring was viewed in the saved screenshot.
-- Compact navigation worked at 320px and, after correction, 768px. Information dialogs opened and closed. Screenshots were inspected, not only accessibility snapshots.
-- Final `scrollWidth - innerWidth` was **0** at 320, 390, 672, 673, 768, 880, 1024 and 1440px. Layout samples used 900px height; saved desktop is 1440×1000, tablet 768×900, mobile/sign-in 390×844. 320×568 was used for the scrolling form/gate.
-- At 320px with root font set to 200%, page scroll width remained 320px and dialog client/scroll width were both 248px. This is text enlargement, **not browser-native zoom**.
-- Reduced-motion emulation disabled transitions and smooth scrolling. Final reload with normal media and no intercepted routes returned to the unconfigured export.
-- Both Inter and Space Grotesk reported `loaded`. Final clean reload's eight document/runtime requests returned 200. Console: **0 errors, 0 warnings**. The unconfigured preview did not load the Privy chunk or contact hosted services.
+- Exact requested hero sentence, new title, canonical URL and visible URL link checked. Collective dialog shows “Small pepes. Shared ambition.”
+- Explore the pond navigates to `#projects`. Search for `SWARM_PROTOCOL` returns one card. Developer tools returns two. An unmatched query returns zero; Clear filters restores six and resets inputs.
+- Alphabetical order: FrogStack, LilyPad, Pepe Research, Pond AI, Prompt Pond, Swarm Protocol. Newest restores original order.
+- Pond AI details expose full example data. Copy contract writes exactly `0x1111111111111111111111111111111111111111` to the browser clipboard and shows feedback. Escape returns focus to its card.
+- Keyboard Enter opens the primary submit gate. Continue with Twitter reports: “Twitter sign-in is not available in this preview. Please check back when the directory launches.” Escape returns to Submit your project. No editable form is exposed without authentication.
+- Mobile menu → The collective → Escape returns focus to Open navigation at 320, 390 and 768px; visible ring inspected at 768px.
+- Page and new-paragraph horizontal overflow were both **0px** at 320, 390, 672, 673, 768, 880, 1024 and 1440px (900px height). Screenshots viewed at 1440×1000, 390×844, 673×900 and 768×900. No overlap or clipping of the new paragraph was observed.
+- At 320×568 with root font set to 200%, page overflow remained 0px. This is text enlargement, not native browser zoom; existing pixel-sized copy does not double from this change.
+- Reduced-motion emulation returned `scroll-behavior: auto` and button `transition-duration: 0s`. Both local fonts reported loaded.
+- Final clean reload: eight document/runtime requests returned 200 or cached 304; zero console errors, warnings and failed requests. No live-service request was made by the unconfigured preview.
 
-### Authenticated form fixtures
+An initial interaction harness asserted the words “not configured” instead of the actual unavailable-sign-in message and stopped, leaving the modal open for the next attempted click. The assertion was corrected to await the actual message and the full interaction sequence passed on the final export; this was a harness correction, not a UI change.
 
-Intercepted only the browser's runtime config, lazy SDK module and calls to `fixture.invalid`; delivered config/export files were never changed by these fixtures. The fake SDK supplied a Twitter identity/token and the API returned controlled responses. This checks the production UI, not real Privy or database behavior.
+### Accessibility scan and measured contrast
 
-At 320px, an empty publish set five invalid controls (four fields plus consent), focused `projectUsername`, and had no horizontal dialog overflow. Valid inputs followed by an injected 503 retained all values and checked consent, displayed an actionable alert, and re-enabled publishing. Retrying with a stored-record response produced success and a visible directory card. The same sequence was repeated on the final export at 1440px: five invalid controls, first-error focus, retained input/consent, two attempts and one new card. The injected 503 produced the expected resource-console error; it was absent after restoring normal routes/reloading.
-
-axe-core **4.13.0**: directory and invalid authenticated-form scans had zero violations and no incomplete items. Sign-in and “How it works” scans also had zero violations but each reported incomplete `color-contrast` checks; this is not an all-pairs contrast pass. No screen-reader session was performed.
-
-### Selected measured contrast
-
-WCAG relative-luminance calculations using browser-computed opaque foreground/background colors:
+axe-core **4.13.0**, installed only under `/tmp`, scanned WCAG 2 A/AA, WCAG 2.1 AA and best-practice rules. Directory: 0 violations, 0 incomplete rules. Collective dialog: 0 violations, color-contrast incomplete on two paragraphs. Sign-in: 0 violations, color-contrast incomplete on alert/public-notice text. Selected opaque pairs were then measured manually from browser-computed colors, using the actual nontransparent ancestor surface where necessary:
 
 | Pair | Foreground / background | Ratio |
 | --- | --- | --- |
-| Card description | `#5c685d` / `#ffffff` | 5.84:1 |
-| Muted card label | `#6a7569` / `#ffffff` | 4.82:1 |
-| Hero paragraph on its opaque forest surface | `#c0cdbb` / `#11291d` | 9.34:1 |
-| Primary button text | `#11291d` / `#c3ee86` | 11.70:1 |
-| Search-field border against its fill | `#7f8b79` / `#ffffff` | 3.58:1 |
+| Hackathon paragraph on opaque forest surface | `#c0cdbb` / `#11291d` | 9.34:1 |
+| Primary button | `#11291d` / `#c3ee86` | 11.70:1 |
+| Footer URL on page surface | `#5c685d` / `#f7f8f4` | 5.48:1 |
+| Collective body paragraph on dialog | `#5c685d` / `#ffffff` | 5.84:1 |
+| Sign-in alert | `#a72d29` / `#fff1ed` | 6.25:1 |
+| Public notice in sign-in gate | `#5c685d` / `#f5f7f1` | 5.41:1 |
 
-These exceed 4.5:1 for the listed normal text pairs and 3:1 for the listed boundary. They do not certify every state or any text/image overlap. Focus ring visibility was inspected separately; no ratio from an unfocused element's default outline is claimed.
+These pairs exceed 4.5:1. They do not establish contrast over every masked-artwork pixel or every state, and do not convert automated incomplete items into a full accessibility certification. An initial footer calculation used transparent body fill; it was discarded and recalculated against the actual opaque HTML page surface above.
 
-### Saved screenshots
+### Final screenshots
 
-Final exported UI, viewed after capture; stored in the existing tracked documentation area so no ignore-file change is required:
+Captured from the final export and visually inspected:
 
-- [Desktop, full page](screenshots/restored-desktop.jpeg)
-- [Mobile, full page](screenshots/restored-mobile.jpeg)
-- [Tablet menu, corrected](screenshots/restored-tablet.jpeg)
-- [Sign-in and keyboard focus](screenshots/restored-signin.jpeg)
-- [Authenticated form validation — mocked services](screenshots/restored-form-validation.jpeg)
+- [Desktop, full page](screenshots/hackathon-desktop.jpeg)
+- [Mobile hero and primary focus](screenshots/hackathon-mobile.jpeg)
+- [Tablet and restored menu focus](screenshots/hackathon-tablet-focus.jpeg)
+
+Earlier `docs/screenshots/restored-*` files are retained as historical evidence, not current screenshots.
 
 ## Delivery integrity and completion
 
-The final source/export, documentation, licenses and existing lockfiles are included. Existing build configuration and package/lock files were verified unchanged. `dist/` was regenerated without stale chunks; relative asset references resolve to included files. No ignore file was changed, no submodule was introduced, and no dependency/cache directories or package archives are included. The final delivery contains 58 files totaling 2,424,117 bytes uncompressed, including a 1,230,266-byte production export. A compressed snapshot is approximately 1.40 MB. The full uncompressed file set is below the 8,388,608-byte limit with more than 5.9 MB of headroom; the temporary accounting archive stays outside the repository. `git diff --check`, relative HTML/CSS asset resolution, documentation links and source/export comparisons against the final build all passed.
+Integrity checks passed: protected-file hashes, source/export parity, relative HTML/CSS/chunk references, requested content, documentation links, and `git diff --check`. The complete deliverable has 62 files, approximately 2.95 MB uncompressed, including a 1,230,689-byte export. A temporary gzip snapshot is approximately 1.86 MB; it remains outside the repository. The deliverable is below the 8,388,608-byte budget with ample headroom. Existing manifest, lockfiles and build configuration are preserved; generated packages/caches and temporary browser captures are excluded. No ignore file or submodule was added. Current screenshots and this report use the existing `docs/` area because the repository excludes `artifacts/` from Git; no exclusion rule was changed. The preview browser and temporary server were closed after checking. `dist/` keeps local fonts, artwork, configuration, favicon and all generated JavaScript/CSS with relative runtime URLs. Absolute canonical and footer URLs intentionally identify the public site.
 
-**Complete for the stated restoration scope.** Limitations: no live Twitter OAuth, deployed Supabase migration/RLS/persistence, production-origin CORS or deployment; no optional CAPTCHA flow; no physical device, screen reader, Firefox/Safari, RTL/localization, forced-colors rendering, native zoom or full accessibility certification. These checks are worker-reported evidence, not independent network certification.
+**Complete for the repository update and static export.** The external hostname still needs publishing-provider/DNS/HTTPS configuration. Live Twitter authentication, Supabase persistence, final-origin CORS and the additional manual/device checks above remain unverified; none is claimed as completed.

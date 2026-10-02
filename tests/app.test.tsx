@@ -89,6 +89,19 @@ describe('public project directory', () => {
     expect(trigger).toHaveFocus();
   });
 
+  it('returns focus to the menu toggle after closing mobile information', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const toggle = screen.getByRole('button', { name: 'Open navigation' });
+    await user.click(toggle);
+    const navigation = screen.getByRole('navigation', { name: 'Mobile navigation' });
+    await user.click(within(navigation).getByRole('button', { name: 'The collective' }));
+    expect(screen.queryByRole('navigation', { name: 'Mobile navigation' })).not.toBeInTheDocument();
+    const dialog = screen.getByRole('dialog', { name: 'Welcome to the collective.' });
+    await user.click(within(dialog).getByRole('button', { name: 'Close dialog' }));
+    expect(toggle).toHaveFocus();
+  });
+
   it('opens the Twitter gate from the primary submit action without exposing editable fields', async () => {
     const user = userEvent.setup();
     render(<App />);

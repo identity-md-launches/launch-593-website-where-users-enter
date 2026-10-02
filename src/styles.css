@@ -107,6 +107,7 @@ img { display: block; max-width: 100%; }
 .hero h1 { font-family: var(--font-display); font-size: clamp(2.65rem, 4.55vw, 3.75rem); font-weight: 600; line-height: 1.06; letter-spacing: -2.8px; margin-block: 24px 18px; text-wrap: balance; overflow-wrap: anywhere; }
 .hero h1 > span { color: var(--accent-solid); }
 .hero-copy > p { font-size: var(--text-ui); line-height: 1.75; color: var(--text-on-dark-secondary); }
+.hero-copy > .hackathon-description { margin-block-start: var(--space-3); max-width: 44ch; }
 .hero-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 23px; margin-block-start: 25px; }
 .hero-actions .button { min-height: 48px; }
 .hero-explore { text-decoration: none; font-size: var(--text-sm); display: inline-flex; align-items: center; gap: 9px; padding-block: 12px; }
