@@ -1,0 +1,5 @@
+project_id = "pond-project-directory"
+
+[functions.submit-project]
+# A Privy JWT is verified by the function; it is not a Supabase Auth JWT.
+verify_jwt = false

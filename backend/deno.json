@@ -1,0 +1,8 @@
+{
+  "nodeModulesDir": "none",
+  "lock": "deno.lock",
+  "tasks": {
+    "check": "deno check supabase/functions/submit-project/index.ts",
+    "test": "deno test --allow-env tests/auth.test.ts"
+  }
+}
