@@ -1,8 +1,6 @@
 import { createContext, useContext, useEffect, useSyncExternalStore, type PropsWithChildren } from 'react';
+import type Privy from '@privy-io/js-sdk-core';
 import { siteConfig } from './config';
-
-// Twitter verification through Supabase Auth's Twitter provider, using the
-// Auth REST API directly (OAuth with PKCE). No SDK and no wallet.
 
 type AuthState = {
   ready: boolean;
@@ -17,42 +15,20 @@ type AuthContextValue = AuthState & {
   getAccessToken: () => Promise<string | null>;
 };
 
-interface StoredSession {
-  accessToken: string;
-  refreshToken: string;
-  expiresAt: number; // Unix seconds
-  twitterUsername: string;
-}
-
-interface AuthUser {
-  id?: string;
-  identities?: { provider?: string; identity_data?: Record<string, unknown> }[];
-}
-
-interface TokenResponse {
-  access_token?: string;
-  refresh_token?: string;
-  expires_in?: number;
-  expires_at?: number;
-  user?: AuthUser;
-}
-
-export const previewMessage = 'Twitter verification is not available in this preview.';
-export const sessionMessage = 'Your Twitter verification expired. Verify with Twitter again.';
-export const twitterMessage = 'A Twitter account is required. Verify with Twitter again.';
-const cancelledMessage = 'Twitter verification was not completed. Try again.';
-const startMessage = 'Unable to start Twitter verification. Check your connection and try again.';
-
-const SESSION_KEY = 'pepe:auth:session';
-const VERIFIER_KEY = 'pepe:auth:verifier';
-export const RESUME_KEY = 'pepe:auth:resume';
-const configured = Boolean(siteConfig.supabaseUrl && siteConfig.supabaseAnonKey);
-const authUrl = () => `${siteConfig.supabaseUrl.replace(/\/+$/, '')}/auth/v1`;
-
-let state: AuthState = { ready: !configured, authenticated: false, twitterUsername: null, error: null };
+type PrivyUser = Awaited<ReturnType<Privy['user']['get']>>['user'];
+const previewMessage = 'Twitter sign-in is not available in this preview. Please check back when the directory launches.';
+const sessionMessage = 'Your session could not be verified. Sign in with Twitter again.';
+const twitterMessage = 'A verified Twitter account is required. Please sign in with Twitter again.';
+let state: AuthState = {
+  ready: !siteConfig.privyAppId,
+  authenticated: false,
+  twitterUsername: null,
+  error: null,
+};
 const listeners = new Set<() => void>();
+let clientPromise: Promise<Privy> | undefined;
 let startupPromise: Promise<void> | undefined;
-let refreshPromise: Promise<string | null> | undefined;
+let refreshPromise: Promise<void> | undefined;
 let revision = 0;
 
 function update(patch: Partial<AuthState>) {
@@ -61,7 +37,6 @@ function update(patch: Partial<AuthState>) {
 }
 
 function anonymous(error: string | null = null) {
-  localStorage.removeItem(SESSION_KEY);
   update({ ready: true, authenticated: false, twitterUsername: null, error });
 }
 
@@ -70,169 +45,157 @@ function subscribe(listener: () => void) {
   return () => { listeners.delete(listener); };
 }
 
-function readSession(): StoredSession | null {
-  try {
-    const raw = localStorage.getItem(SESSION_KEY);
-    if (!raw) return null;
-    const value = JSON.parse(raw) as Partial<StoredSession>;
-    if (typeof value.accessToken !== 'string' || typeof value.refreshToken !== 'string'
-      || typeof value.expiresAt !== 'number' || typeof value.twitterUsername !== 'string') return null;
-    return value as StoredSession;
-  } catch { return null; }
-}
-
-function writeSession(session: StoredSession) {
-  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-  update({ ready: true, authenticated: true, twitterUsername: session.twitterUsername, error: null });
-}
-
-/** The Twitter handle comes only from the provider identity Supabase Auth stored, never from editable metadata. */
-export function twitterHandle(user: AuthUser | undefined): string | null {
-  const identity = user?.identities?.find((item) => item.provider === 'twitter');
-  const data = identity?.identity_data ?? {};
-  const candidate = [data.user_name, data.preferred_username].find((value) => typeof value === 'string') as string | undefined;
-  const handle = candidate?.trim().replace(/^@/, '');
-  return handle && /^[A-Za-z0-9_]{1,15}$/.test(handle) ? handle : null;
-}
-
-async function authRequest(path: string, init: RequestInit & { token?: string } = {}): Promise<unknown> {
-  const headers: Record<string, string> = { apikey: siteConfig.supabaseAnonKey, Accept: 'application/json' };
-  if (init.body) headers['Content-Type'] = 'application/json';
-  if (init.token) headers.Authorization = `Bearer ${init.token}`;
-  const response = await fetch(`${authUrl()}${path}`, { ...init, headers, signal: AbortSignal.timeout(20_000) });
-  const body: unknown = response.status === 204 ? null : await response.json().catch(() => null);
-  if (!response.ok) {
-    const error = new Error('auth request failed') as Error & { status: number };
-    error.status = response.status;
-    throw error;
+async function getClient(): Promise<Privy> {
+  if (!clientPromise) {
+    clientPromise = (async () => {
+      const { default: PrivyClient } = await import('@privy-io/js-sdk-core');
+      // Namespace SDK session and PKCE state to this app. The SDK owns their lifecycle.
+      const prefix = `pond:privy:${siteConfig.privyAppId}:`;
+      const client = new PrivyClient({
+        appId: siteConfig.privyAppId,
+        clientId: siteConfig.privyClientId || undefined,
+        sessions: { cookieWriteBehavior: 'never' },
+        storage: {
+          get: (key) => {
+            const value = localStorage.getItem(prefix + key);
+            return value === null ? undefined : JSON.parse(value) as unknown;
+          },
+          put: (key, value) => {
+            if (value === undefined) localStorage.removeItem(prefix + key);
+            else localStorage.setItem(prefix + key, JSON.stringify(value));
+          },
+          del: (key) => localStorage.removeItem(prefix + key),
+          getKeys: () => Object.keys(localStorage)
+            .filter((key) => key.startsWith(prefix)).map((key) => key.slice(prefix.length)),
+        },
+      });
+      await client.initialize();
+      return client;
+    })().catch((error: unknown) => {
+      clientPromise = undefined;
+      throw error;
+    });
   }
-  return body;
+  return clientPromise;
 }
 
-function sessionFromToken(body: TokenResponse): StoredSession {
-  if (!body.access_token || !body.refresh_token) throw new Error(cancelledMessage);
-  const handle = twitterHandle(body.user);
-  if (!handle) throw new Error(twitterMessage);
-  const expiresAt = typeof body.expires_at === 'number' ? body.expires_at
-    : Math.floor(Date.now() / 1000) + (typeof body.expires_in === 'number' ? body.expires_in : 3600);
-  return { accessToken: body.access_token, refreshToken: body.refresh_token, expiresAt, twitterUsername: handle };
-}
-
-function randomVerifier(): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(48));
-  return btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
-async function challengeFor(verifier: string): Promise<string> {
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
-  return btoa(String.fromCharCode(...new Uint8Array(digest))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+function acceptUser(user: PrivyUser) {
+  const twitter = user.linked_accounts.find((account) => account.type === 'twitter_oauth');
+  const username = twitter?.username?.trim();
+  if (!username) throw new Error(twitterMessage);
+  update({ ready: true, authenticated: true, twitterUsername: username, error: null });
 }
 
 function callbackParameters() {
   const url = new URL(window.location.href);
-  const hash = new URLSearchParams(url.hash.replace(/^#/, ''));
-  const code = url.searchParams.get('code');
-  const error = url.searchParams.get('error') ?? hash.get('error');
-  const description = url.searchParams.get('error_description') ?? hash.get('error_description');
-  const isCallback = Boolean(code || error);
+  const code = url.searchParams.get('privy_oauth_code');
+  const oauthState = url.searchParams.get('privy_oauth_state');
+  const provider = url.searchParams.get('privy_oauth_provider');
+  const error = url.searchParams.get('privy_oauth_error');
+  const isCallback = [...url.searchParams.keys()].some((key) => key.startsWith('privy_oauth_'));
   if (isCallback) {
-    // Remove single-use callback parameters from the address bar and history before any request.
-    for (const key of ['code', 'error', 'error_code', 'error_description']) url.searchParams.delete(key);
-    let fragment = url.hash;
-    if (hash.has('error')) {
-      for (const key of ['error', 'error_code', 'error_description']) hash.delete(key);
-      const rest = hash.toString();
-      fragment = rest ? `#${rest}` : '';
+    // Clear sensitive, single-use callback parameters from history before making requests.
+    for (const key of [...url.searchParams.keys()]) {
+      if (key.startsWith('privy_oauth_')) url.searchParams.delete(key);
     }
-    window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${fragment}`);
+    window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
   }
-  return { code, error, description, isCallback };
+  return { code, oauthState, provider, error, isCallback };
 }
 
 function initialize() {
-  if (!configured) return Promise.resolve();
+  if (!siteConfig.privyAppId) return Promise.resolve();
   startupPromise ??= (async () => {
     const currentRevision = revision;
     const callback = callbackParameters();
-    const verifier = localStorage.getItem(VERIFIER_KEY);
-    if (callback.isCallback) localStorage.removeItem(VERIFIER_KEY);
     try {
-      if (callback.error) throw new Error(cancelledMessage);
-      if (callback.code) {
-        if (!verifier) throw new Error(cancelledMessage);
-        const body = await authRequest('/token?grant_type=pkce', { method: 'POST', body: JSON.stringify({ auth_code: callback.code, code_verifier: verifier }) }) as TokenResponse;
-        if (currentRevision === revision) writeSession(sessionFromToken(body));
-        return;
+      if (callback.isCallback && (callback.error || !callback.code || callback.code === 'undefined' || !callback.oauthState ||
+          (callback.provider && callback.provider !== 'twitter'))) {
+        throw new Error('Twitter sign-in was not completed. Please try again.');
       }
-      const stored = readSession();
-      if (!stored) { if (currentRevision === revision) anonymous(); return; }
-      if (stored.expiresAt - 60 > Date.now() / 1000) {
-        if (currentRevision === revision) update({ ready: true, authenticated: true, twitterUsername: stored.twitterUsername, error: null });
-        return;
-      }
-      const refreshed = await refresh(stored);
-      if (currentRevision === revision) writeSession(refreshed);
+      const client = await getClient();
+      if (callback.code && callback.oauthState) {
+        const result = await client.auth.oauth.loginWithCode(
+          callback.code, callback.oauthState, 'twitter', undefined, 'login-or-sign-up',
+          { embedded: { ethereum: { createOnLogin: 'off' }, solana: { createOnLogin: 'off' } } },
+        );
+        if (currentRevision === revision) acceptUser(result.user);
+      } else if (await client.getAccessToken()) {
+        const { user } = await client.user.refreshUser();
+        if (currentRevision === revision) acceptUser(user);
+      } else if (currentRevision === revision) anonymous();
     } catch (error) {
       if (currentRevision !== revision) return;
       const message = error instanceof Error && error.message === twitterMessage ? twitterMessage
-        : callback.isCallback ? cancelledMessage : null;
+        : callback.isCallback ? 'Twitter sign-in was not completed. Please try again.'
+          : 'We could not connect to Twitter sign-in. Please try again.';
       anonymous(message);
     }
   })();
   return startupPromise;
 }
 
-async function refresh(stored: StoredSession): Promise<StoredSession> {
-  const body = await authRequest('/token?grant_type=refresh_token', { method: 'POST', body: JSON.stringify({ refresh_token: stored.refreshToken }) }) as TokenResponse;
-  return sessionFromToken(body);
+async function refreshSession() {
+  if (!siteConfig.privyAppId || !state.ready || refreshPromise) return;
+  const currentRevision = revision;
+  refreshPromise = (async () => {
+    try {
+      const client = await getClient();
+      const token = await client.getAccessToken();
+      if (currentRevision !== revision) return;
+      if (!token) {
+        if (state.authenticated) anonymous(sessionMessage);
+        return;
+      }
+      const { user } = await client.user.refreshUser();
+      if (currentRevision === revision) acceptUser(user);
+    } catch {
+      if (currentRevision === revision && state.authenticated) anonymous(sessionMessage);
+    } finally { refreshPromise = undefined; }
+  })();
+  return refreshPromise;
 }
 
 async function login() {
-  if (!configured) { anonymous(previewMessage); return; }
+  if (!siteConfig.privyAppId) { anonymous(previewMessage); return; }
   if (!state.ready) return;
   revision += 1;
   update({ ready: false, error: null });
   try {
-    const verifier = randomVerifier();
-    const challenge = await challengeFor(verifier);
-    localStorage.setItem(VERIFIER_KEY, verifier);
-    sessionStorage.setItem(RESUME_KEY, '1');
-    // Return to this static page so gateway subpaths keep working. The URL must be allowed in Supabase Auth.
-    const redirectTo = `${window.location.origin}${window.location.pathname}`;
-    const params = new URLSearchParams({ provider: 'twitter', redirect_to: redirectTo, code_challenge: challenge, code_challenge_method: 's256' });
-    window.location.assign(`${authUrl()}/authorize?${params}`);
+    const client = await getClient();
+    // Use the existing static page as the callback so gateway subpaths also work.
+    const redirectUrl = `${window.location.origin}${window.location.pathname}`;
+    const { url } = await client.auth.oauth.generateURL('twitter', redirectUrl);
+    window.location.assign(url);
   } catch {
-    update({ ready: true, error: startMessage });
+    update({ ready: true, error: 'We could not start Twitter sign-in. Please try again.' });
   }
 }
 
 async function logout() {
   revision += 1;
-  const stored = readSession();
   anonymous();
-  if (!stored || !configured) return;
-  try { await authRequest('/logout', { method: 'POST', token: stored.accessToken }); }
-  catch { /* The local session is already cleared; a server-side revoke failure is not actionable here. */ }
+  if (!clientPromise) return;
+  try { await (await clientPromise).auth.logout(); }
+  catch {
+    const message = 'Sign-out could not finish. Please retry before leaving this shared device.';
+    update({ error: message });
+    throw new Error(message);
+  }
 }
 
 async function getAccessToken() {
-  if (!configured || !state.authenticated) return null;
-  const stored = readSession();
-  if (!stored) { anonymous(sessionMessage); return null; }
-  if (stored.expiresAt - 60 > Date.now() / 1000) return stored.accessToken;
+  if (!siteConfig.privyAppId || !state.authenticated) return null;
   const currentRevision = revision;
-  refreshPromise ??= (async () => {
-    try {
-      const refreshed = await refresh(stored);
-      if (currentRevision !== revision) return null;
-      writeSession(refreshed);
-      return refreshed.accessToken;
-    } catch {
-      if (currentRevision === revision) anonymous(sessionMessage);
-      return null;
-    } finally { refreshPromise = undefined; }
-  })();
-  return refreshPromise;
+  try {
+    const token = await (await getClient()).getAccessToken();
+    if (currentRevision !== revision) return null;
+    if (!token) anonymous(sessionMessage);
+    return token;
+  } catch {
+    if (currentRevision === revision) anonymous(sessionMessage);
+    return null;
+  }
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -241,21 +204,28 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const snapshot = useSyncExternalStore(subscribe, () => state, () => state);
   useEffect(() => {
     void initialize();
+    const onVisible = () => { if (document.visibilityState === 'visible') void refreshSession(); };
     const onStorage = (event: StorageEvent) => {
-      if (event.key !== SESSION_KEY || !state.ready) return;
-      const stored = readSession();
-      if (!stored && state.authenticated) anonymous();
-      else if (stored && stored.twitterUsername !== state.twitterUsername) update({ authenticated: true, twitterUsername: stored.twitterUsername, error: null });
+      if (!event.key || event.key.startsWith(`pond:privy:${siteConfig.privyAppId}:`)) void refreshSession();
     };
     const onPageShow = (event: PageTransitionEvent) => {
       // Returning from a cancelled redirect may restore this page from the back-forward cache.
-      if (event.persisted && !state.ready) update({ ready: true, error: cancelledMessage });
+      if (event.persisted && !state.ready) {
+        update({ ready: true, error: 'Twitter sign-in was not completed. Please try again.' });
+        void refreshSession();
+      }
     };
+    window.addEventListener('focus', onVisible);
     window.addEventListener('storage', onStorage);
     window.addEventListener('pageshow', onPageShow);
+    document.addEventListener('visibilitychange', onVisible);
+    const interval = window.setInterval(onVisible, 60_000);
     return () => {
+      window.removeEventListener('focus', onVisible);
       window.removeEventListener('storage', onStorage);
       window.removeEventListener('pageshow', onPageShow);
+      document.removeEventListener('visibilitychange', onVisible);
+      window.clearInterval(interval);
     };
   }, []);
   return <AuthContext.Provider value={{ ...snapshot, login, logout, getAccessToken }}>{children}</AuthContext.Provider>;

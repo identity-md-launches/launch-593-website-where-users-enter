@@ -19,5 +19,5 @@ grant select, insert, update, delete on public.projects to service_role;
 create policy "Anyone can read published projects" on public.projects
   for select to anon, authenticated using (true);
 
-comment on table public.projects is 'Public user submissions. Only the Edge Function, after confirming a Supabase Auth session with a Twitter identity, may insert. Addresses and project claims are self-reported.';
+comment on table public.projects is 'Public user submissions. Only the Privy-verifying Edge Function may insert. Addresses and project claims are self-reported.';
 commit;

@@ -1,4 +1,6 @@
 export interface SiteConfig {
+  privyAppId: string;
+  privyClientId?: string;
   supabaseUrl: string;
   supabaseAnonKey: string;
 }
@@ -6,7 +8,7 @@ export interface SiteConfig {
 declare global { interface Window { PEPE_CONFIG?: Partial<SiteConfig> } }
 
 export const siteConfig: SiteConfig = {
-  supabaseUrl: '', supabaseAnonKey: '',
+  privyAppId: '', privyClientId: '', supabaseUrl: '', supabaseAnonKey: '',
   ...window.PEPE_CONFIG,
 };
 export const backendConfig = { url: siteConfig.supabaseUrl, anonKey: siteConfig.supabaseAnonKey };

@@ -7,7 +7,7 @@ const input = { projectUsername: 'pond_ai', contract: `0x${'ab'.repeat(20)}`, de
 const project = { ...input, twitterUsername: 'verified_frog', id: 'project-1', createdAt: '2026-10-02T12:00:00Z' };
 const config = { url: 'https://example.supabase.co', anonKey: 'public-key' };
 const request = (body = input, headers = {}) => new Request('https://example.test/submit-project', {
-  method: 'POST', headers: { Origin: 'https://pond.example', Authorization: 'Bearer session-token', 'Content-Type': 'application/json', ...headers }, body: typeof body === 'string' ? body : JSON.stringify(body),
+  method: 'POST', headers: { Origin: 'https://pond.example', Authorization: 'Bearer privy-token', 'Content-Type': 'application/json', ...headers }, body: typeof body === 'string' ? body : JSON.stringify(body),
 });
 const handler = (overrides = {}) => createHandler({ origins: ['https://pond.example'], authenticate: async () => 'verified_frog', insert: async (data, twitterUsername) => ({ ...project, ...data, twitterUsername }), ...overrides });
 
@@ -63,7 +63,7 @@ test('duplicate contract error is actionable and private errors are not exposed'
   assert.ok(!(await unavailable.text()).includes('secret'));
 });
 
-test('public fetch has no auth requirement and transport sends the session bearer only on submit', async () => {
+test('public fetch has no auth requirement and transport sends Privy bearer only on submit', async () => {
   const original = globalThis.fetch;
   const calls = [];
   globalThis.fetch = async (url, init) => { calls.push({ url, init }); return Response.json(init.method === 'POST' ? project : [project]); };
@@ -84,6 +84,6 @@ test('public fetch traverses pages and submit exposes server errors', async () =
     assert.equal((await fetchProjects(config)).length, 251);
     globalThis.fetch = async () => Response.json({ error: 'This contract is already listed.' }, { status: 409 });
     await assert.rejects(submitProject(config, input, 'token'), /already listed/);
-    await assert.rejects(submitProject(config, input, ''), /Verify with Twitter/);
+    await assert.rejects(submitProject(config, input, ''), /Sign in with Twitter/);
   } finally { globalThis.fetch = original; }
 });
