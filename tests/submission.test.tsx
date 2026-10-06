@@ -2,15 +2,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Submission } from '../src/components/Submission';
-import type { Project } from '../src/lib/submissions';
+import type { Project } from '../src/services/directory';
 
 const mocks = vi.hoisted(() => ({
-  configured: true,
+  usesPublicNetwork: true,
   submit: vi.fn(),
   config: { url: 'https://configured.example', anonKey: 'public-test-key' },
 }));
-vi.mock('../src/config', () => ({ get hasBackend() { return mocks.configured; }, backendConfig: mocks.config }));
-vi.mock('../src/lib/submissions', () => ({ submitProject: mocks.submit }));
+vi.mock('../src/config', () => ({ get usesPublicNetwork() { return mocks.usesPublicNetwork; }, backendConfig: mocks.config }));
+vi.mock('../src/services/directory', () => ({ submitProject: mocks.submit }));
 
 const contract = `0x${'ab'.repeat(20)}`;
 const wallet = `0x${'cd'.repeat(20)}`;
@@ -20,7 +20,7 @@ const persisted: Project = { id: 'server-issued-id', projectUsername: 'pond_tool
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.submit.mockReset();
-  mocks.configured = true;
+  mocks.usesPublicNetwork = true;
 });
 
 async function fillForm(user: ReturnType<typeof userEvent.setup>) {
@@ -39,6 +39,18 @@ function renderForm() {
 }
 
 describe('public submission without sign-in', () => {
+  it('rejects an overlong pasted address instead of silently truncating it to another address', async () => {
+    const user = userEvent.setup();
+    renderForm();
+    const address = screen.getByRole('textbox', { name: /^Contract address/ });
+    await user.click(address);
+    await user.paste(`${contract}1234`);
+    await user.click(screen.getByRole('button', { name: 'Publish project' }));
+    expect(address).toHaveValue(`${contract}1234`);
+    expect(address).toHaveAttribute('aria-invalid', 'true');
+    expect(mocks.submit).not.toHaveBeenCalled();
+  });
+
   it('requires complete valid fields and explicit public visibility consent', async () => {
     const user = userEvent.setup();
     const { onPublished } = renderForm();
@@ -98,16 +110,16 @@ describe('public submission without sign-in', () => {
     expect(mocks.submit).toHaveBeenCalledTimes(2);
   });
 
-  it('does not send or pretend to publish when services are unconfigured', async () => {
-    mocks.configured = false;
+  it('publishes through the public network without Supabase credentials', async () => {
     const user = userEvent.setup();
+    mocks.submit.mockResolvedValue(persisted);
     const { onPublished } = renderForm();
+    expect(screen.getByText(/Shared on a public network/)).toBeVisible();
+    expect(screen.queryByText(/Publishing is not available yet/)).not.toBeInTheDocument();
     await fillForm(user);
     await user.click(screen.getByRole('checkbox'));
     await user.click(screen.getByRole('button', { name: 'Publish project' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('Your details have not been submitted.');
-    expect(mocks.submit).not.toHaveBeenCalled();
-    expect(onPublished).not.toHaveBeenCalled();
-    expect(screen.getByRole('textbox', { name: /^Twitter account/ })).toHaveValue('@real_builder');
+    await waitFor(() => expect(onPublished).toHaveBeenCalledExactlyOnceWith(persisted));
+    expect(screen.getByRole('button', { name: 'Explore the collective' })).toHaveFocus();
   });
 });

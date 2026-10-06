@@ -1,8 +1,8 @@
-# Public submission service
+# Optional managed submission service
 
 Supabase Postgres stores the shared directory. The Edge Function validates all five self-reported fields and inserts with a server-held service key. Visitors can read and submit without an account. Twitter account, contract and wallet ownership are not verified.
 
-No hosted service configuration was supplied and this update does not deploy the service. The unconfigured static export presents an empty directory and explains that publishing is unavailable.
+This service is optional. The shipped static export now uses public Nostr relays without credentials; see the root README. Supplying both Supabase identifiers explicitly selects this managed provider instead. Existing Supabase code and migrations are retained unchanged. No hosted Supabase service was supplied or deployed during this update. Selecting a provider does not migrate records between services.
 
 ## Deployment
 

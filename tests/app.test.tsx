@@ -2,23 +2,25 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from '../src/App';
-import type { Project } from '../src/lib/submissions';
+import type { Project } from '../src/services/directory';
 
-const mocks = vi.hoisted(() => ({ configured: false, fetch: vi.fn(), submit: vi.fn() }));
-vi.mock('../src/config', () => ({ get hasBackend() { return mocks.configured; }, backendConfig: { url: '', anonKey: '' } }));
-vi.mock('../src/lib/submissions', () => ({ fetchProjects: mocks.fetch, submitProject: mocks.submit }));
+const mocks = vi.hoisted(() => ({ fetch: vi.fn(), submit: vi.fn() }));
+vi.mock('../src/config', () => ({ usesPublicNetwork: true, backendConfig: { url: '', anonKey: '' } }));
+vi.mock('../src/services/directory', () => ({ fetchProjects: mocks.fetch, submitProject: mocks.submit }));
 const projects: Project[] = [
   { id: '1', projectUsername: 'zebra_tools', twitterUsername: 'builder_one', description: 'Tools for an open community of builders.', contract: `0x${'ab'.repeat(20)}`, wallet: `0x${'cd'.repeat(20)}`, createdAt: '2026-10-06T12:00:00Z' },
   { id: '2', projectUsername: 'alpha_project', twitterUsername: 'builder_two', description: 'A place for independent project research.', contract: `0x${'ef'.repeat(20)}`, wallet: `0x${'ab'.repeat(20)}`, createdAt: '2026-10-05T12:00:00Z' },
 ];
 
-beforeEach(() => { vi.clearAllMocks(); mocks.configured = false; mocks.fetch.mockReset().mockResolvedValue(projects); });
+beforeEach(() => { vi.clearAllMocks(); mocks.fetch.mockReset().mockResolvedValue(projects); });
 function cardNames() { return screen.getAllByRole('article').map(card => within(card).getByRole('heading', { level: 3 }).textContent); }
-async function renderDirectory() { mocks.configured = true; render(<App />); await screen.findByRole('button', { name: 'zebra_tools' }); }
+async function renderDirectory() { render(<App />); await screen.findByRole('button', { name: 'zebra_tools' }); }
 
 describe('public project directory', () => {
-  it('shows an honest empty directory with only All projects and no sign-in or examples', () => {
+  it('shows an honest empty directory with only All projects and no sign-in or examples', async () => {
+    mocks.fetch.mockResolvedValue([]);
     render(<App />);
+    await screen.findByRole('heading', { name: 'Be the first in the pond.' });
     expect(screen.queryAllByRole('article')).toHaveLength(0);
     expect(screen.getByRole('heading', { name: 'Be the first in the pond.' })).toBeVisible();
     const views = within(screen.getByRole('group', { name: 'Project views' }));
@@ -26,7 +28,7 @@ describe('public project directory', () => {
     expect(views.getByRole('button', { name: /All projects/ })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.queryByRole('button', { name: /sign in|twitter|AI agents|Developer tools|Community/i })).not.toBeInTheDocument();
     expect(screen.queryByText(/Preview directory|Example|Privy/i)).not.toBeInTheDocument();
-    expect(mocks.fetch).not.toHaveBeenCalled();
+    expect(mocks.fetch).toHaveBeenCalledOnce();
   });
 
   it('searches actual records by username, builder and full contract address', async () => {
@@ -67,12 +69,24 @@ describe('public project directory', () => {
   });
 
   it('retries a failed directory request without showing fictional fallback data', async () => {
-    mocks.configured = true; mocks.fetch.mockRejectedValueOnce(new Error('Check your connection and try again.'));
+    mocks.fetch.mockRejectedValueOnce(new Error('Check your connection and try again.'));
     const user = userEvent.setup(); render(<App />);
     expect(await screen.findByRole('alert')).toHaveTextContent('Check your connection');
     expect(screen.queryAllByRole('article')).toHaveLength(0);
     await user.click(screen.getByRole('button', { name: 'Try again' }));
     await screen.findByRole('button', { name: 'zebra_tools' }); expect(cardNames()).toHaveLength(2);
+  });
+
+  it('keeps previously loaded projects visible when refresh fails, then recovers', async () => {
+    const user = userEvent.setup(); await renderDirectory();
+    mocks.fetch.mockRejectedValueOnce(new Error('Unable to load public projects. Check your connection.'));
+    await user.click(screen.getByRole('button', { name: 'Refresh projects' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Previously loaded projects are still shown');
+    expect(cardNames()).toHaveLength(2);
+    mocks.fetch.mockResolvedValueOnce([...projects, { ...projects[0], id: '3', contract: `0x${'01'.repeat(20)}`, projectUsername: 'fresh_project' }]);
+    await user.click(screen.getByRole('button', { name: 'Try again' }));
+    await screen.findByRole('button', { name: 'fresh_project' });
+    expect(cardNames()).toHaveLength(3);
   });
 
   it('returns focus to the persistent menu toggle after closing mobile information', async () => {
@@ -90,6 +104,7 @@ describe('public project directory', () => {
     expect(within(dialog).getAllByRole('textbox')).toHaveLength(5);
     expect(within(dialog).getByRole('textbox', { name: /^Twitter account/ })).not.toHaveAttribute('readonly');
     expect(within(dialog).queryByRole('button', { name: /Twitter/ })).not.toBeInTheDocument();
-    expect(within(dialog).getByText(/Publishing is not available yet/)).toBeVisible();
+    expect(within(dialog).getByText(/Shared on a public network/)).toBeVisible();
+    expect(within(dialog).queryByText(/Publishing is not available yet/)).not.toBeInTheDocument();
   });
 });

@@ -1,107 +1,118 @@
-# Validation · directory and submission cleanup
+# Public publishing validation — 2026-10-06
 
-Date: 2026-10-06. This record describes the current source/export. Older screenshots in `docs/screenshots/` and `validation-restoration.md` are historical. Results below are worker-reported checks, not independent certification.
+## Scope and outcome
 
-## Scope and implementation assumptions
+**Complete for the stated implementation/export scope**, with external-service and manual-check limits below. The production export supports public submission and shared retrieval without authentication or private credentials. This report records worker checks; it is not independent network certification or a claim that the new export has reached the final hosted domain.
 
-The requested changes remove Twitter sign-in, fictional preview projects, and the AI agents / Developer tools / Community directory options while retaining All projects. Removing sign-in was interpreted as opening the existing submission form directly. The Twitter detail remains as a self-reported username; no substitute authentication, wallet connection or local fake persistence was introduced.
+The starting form refused publication because both Supabase identifiers were blank. No existing hosted database configuration or deployment capability was supplied. The implemented default uses three public Nostr relays, retaining the optional Supabase provider and all prior project fields/visual identity. No browser-only persistence, example directory entries, account connection, token or on-chain action was introduced. Users explicitly consent to public sharing; ownership remains unverified.
 
-The existing green visual system, illustration, hackathon copy, public URL metadata, search, sort, details and copy actions are preserved. The frontend transport and hosted service source now accept the five validated fields without a Twitter token. Existing database access policies and records are unchanged. A new migration changes only the table's descriptive comment. Live configuration/deployment remains external.
+Source: `src/services/directory.ts`, `src/services/public-directory.ts`, `src/config.ts`, `public/config.js`, the affected App/form/dialog/CSS and tests. Final export: `dist/`, served at `http://127.0.0.1:4173/preview/` for browser checks. That URL is a temporary local preview, not the public address. Supabase migrations/function source, build configuration, dependency manifests and lockfiles are unchanged.
 
-## Commands and results
+## Commands and actual results
 
-Build/check tools: Node 24.21.0, TypeScript 5.8.3, Vite 6.3.5, Vitest 3.2.3, Deno 2.9.6. Browser tools installed separately under `/tmp`: Playwright Core 1.63.0, axe-core 4.14.0; existing Chromium 154.0.8037.0.
+Dependencies were installed into an isolated source copy at `/tmp/pepe-publish-build`, using Node 24.21.0 and npm 11.19.0. Source/tests/public files were synchronized into that copy before checks. Nothing was installed in repository `node_modules/`. The complete generated `dist/` was copied back after the final source change.
 
-| Command or check | Actual result |
+| Command | Actual result |
 | --- | --- |
-| `npm ci --cache /tmp/pepe-update-npm-cache --no-audit --no-fund` in an isolated source copy | Passed; 203 locked packages installed. Existing manifests and lockfiles were not edited. |
-| `npm run typecheck` | Passed, including the final source. |
-| `npm test` | 11 tests passed: 7 directory/navigation tests and 4 submission tests. |
-| `npm run test:backend` | Handler and frontend transport compiled; 9 tests passed. |
-| `deno task --frozen check` from the copied `backend/` | Passed for the real Edge Function entry point. |
-| `deno task --frozen test` from the copied `backend/` | 3 tests passed with a mocked database, exercising the real entry point. |
-| `npm run build` | Passed after the final source correction. 1,585 modules transformed; final JS 220,004 bytes, CSS 27,196 bytes. |
-| `node test/scratch/browser-check.mjs` | Final run passed against repository `dist/` served under `/preview/`. The scratch runner owned its server/browser and closed both on exit. |
-| Production resource check | Nine observed document/runtime responses returned 200, including one repeat favicon request. Every URL stayed under `/preview/`; both local fonts loaded. No default-export console warnings, console errors, page errors or failed requests. |
-| Protected-file comparison | SHA-256 comparison against the initial snapshot found all existing manifests, lockfiles and build configuration unchanged. No ignore files changed. |
+| `npm ci --prefix /tmp/pepe-publish-build --cache /tmp/pepe-npm-cache --no-audit --no-fund` | Exit 0; 203 locked packages installed. npm noted a deprecated transitive encoding package and an esbuild install-script notice. Neither prevented the build. |
+| `npm run typecheck --prefix /tmp/pepe-publish-build` | Exit 0 after the final source change. |
+| `npm test --prefix /tmp/pepe-publish-build` | Exit 0; 24 tests in 3 files. Final run: 14.59 seconds. |
+| `npm run test:backend --prefix /tmp/pepe-publish-build` | Exit 0; 9 existing handler/transport tests passed. Optional backend source remained unchanged afterward. |
+| `npm run build --prefix /tmp/pepe-publish-build` | Exit 0 after the final source change; Vite 6.3.5, 1,601 transformed modules. JS `index-DmS5ab_T.js`: 262.70 kB / 85.00 kB gzip; CSS `index-5tdW3ZZ5.css`: 27.79 kB / 6.32 kB gzip. |
+| `timeout 1800s python3 -m http.server 4173 --bind 0.0.0.0 --directory test/scratch/site` | Served the final export through the scratch `preview` symlink. Browser checks used the actual built files. Preview stopped after checks. |
+| `npm install --prefix /tmp/pepe-validation-tools --cache /tmp/pepe-npm-cache --no-audit --no-fund axe-core@4.10.3` | Exit 0; temporary audit tooling only, outside the submission. |
+| `git diff --check` | Passed. Protected manifest/build-config diff check was empty. |
 
-Vite emits the existing informational notice that the separate `./config.js` runtime script cannot be bundled without `type="module"`. The exported script loaded successfully in Chromium. The obsolete Privy and CCIP chunks were removed by the clean production build. The unused dependencies remain in the protected manifest/lockfile; none are imported by the final runtime.
+Vite's notice that `./config.js` cannot be bundled without `type="module"` is expected: this is the existing separate runtime configuration script. Its production request returned 200. CSS font URLs were rewritten to `../fonts/...`; JS/CSS references, artwork and favicon loaded at the subpath.
 
-Two runner issues were resolved: Chromium initially could not write its default crash-handler configuration, so its XDG config/cache directories were placed in `/tmp`. An overly strict Tab assertion expected immediate focus on Close; actual native-dialog behavior goes through browser chrome and then focuses the dialog container. The corrected check distinguishes browser focus from page background focus. No custom trap was added to override native behavior.
+An initial backend test run exposed that importing the new transport directly from the legacy Supabase library broke its isolated compiler's module resolution. The new provider adapter was moved to `src/services/directory.ts`; the original library and runner remain unchanged, and all 9 backend tests then passed. The Deno suite was not rerun; no backend runtime code changed.
 
-## Interaction coverage
+## Interaction evidence
 
-Permanent frontend tests exercise the absence of sample records/sign-in/category controls; the empty state; real-record search by username, builder and full contract; sorting; All projects reset; full details; copying; focus return; load-error retry; five immediately editable fields; validation and consent; pending controls; normalized submission; server-only success; retained input and retry; and honest unconfigured behavior.
+Chromium **154.0.8037.0**, via the assigned Playwright browser tools, inspected screenshots and exercised the export. Supporting machine results: [finalBrowser.json](finalBrowser.json) and [finalBrowserReview.json](finalBrowserReview.json).
 
-The Node suite exercises field normalization, handle/address/description rejection, anonymous submission, invalid-input rejection before persistence, CORS, JSON requirements, body bounds, preflight/method behavior, duplicate errors, private error redaction, token-free transport and paginated public reads. Deno tests cover the deployed entry-point shape, server-held database credentials, absence of account lookups, invalid handles and duplicate recovery. Test records exist only in test code, not in application source or `dist/`.
+### Live shared storage
 
-The browser run covered:
+The normal configuration/tag was read successfully and contained zero projects at the final check. No test project was published into `identitymd-593-projects-v1`.
 
-- The actual default export: no sign-in control, preview label, example cards or removed category options; only All projects remains in the view control group.
-- Hash navigation, empty search, All projects reset, Enter to open the form, all five editable fields, first-invalid-field focus, explicit consent and unavailable-publishing feedback with retained input.
-- Tab order through Twitter, project username, contract, description, wallet, consent and Publish. Native browser chrome is reachable at the boundary; Tab returns to the modal without focusing background controls. Escape restores the triggering submission action. Mobile information dialogs return to the menu toggle; How it works → form → Escape returns to the original information trigger.
-- Configured service behavior using intercepted runtime configuration, in-memory test records and the real handler's validation: failed read/retry, search, sort, full details, clipboard, failed write/retry, publication, updated directory and reload. Browser requests had no account bearer token. This is simulated persistence, not a live database write.
+For a real write/read test, only the served `config.js` response was overridden in the browser to select a separate validation tag. The production bundle, relay endpoints, signing code, validation, submission UI and retrieval were real; WebSocket/storage responses were **not mocked**. The source and delivered config retain the production tag.
 
-## Better Interface review
+- Initial live flow: tag `identitymd-593-validation-20261006-public`, event `1aeace73f59c576e02ee39db7098b884133a82c60cc64e354ed3aa35318b70b5`. All three relays acknowledged it. A separate context already open before publication retrieved it with Refresh projects, then again after reload; localStorage and sessionStorage were both empty.
+- Final rebuilt-export flow: tag `identitymd-593-validation-20261006-final`, event `16381d4b599be7b7803fae3246616f52b1685f6904a35bb844c5ca0f14c1a725`. `relay.primal.net` and `nostr.mom` acknowledged and returned valid records, satisfying the two-copy requirement. `relay.damus.io` returned a **503 WebSocket handshake error** during this run; publication still succeeded. This is observed failover, not a claim that all three services were healthy continuously.
+- A fresh independent browser context loaded the final record, reloaded and still displayed the exact two 42-character addresses. Both browser storage counts remained zero. No persisted publisher key or identity was available to the reader.
+- Retrying identical details in the same page returned success with one directory card, confirming idempotency. A changed project claim for the same contract returned the duplicate message and retained the entered address. The first duplicate harness expected rejection of an identical retry; its timeout was corrected to test a different claim, consistent with the intended retry behavior.
+- An early expiring protocol probe used `identitymd-593-validation-v1`. The two form-test records above explicitly identify themselves as validation data and remain separate from production. No real person's private information was used.
 
-The pinned workflow, all six domains' core principles and the documentation method were read. Existing tokens/components were retained and the review was limited to the requested changes and affected shared surfaces. Attribution remains in `licenses/`.
+This demonstrates storage and public readback at test time. It does not establish archival retention, independent ownership of relay operators, exhaustive history completeness from a malicious relay, or behavior from every geography/browser/origin.
 
-| Domain | Coverage and evidence | Limitations |
+### Browser interactions and rendering
+
+- Real publish: five editable fields, no sign-in, explicit public-consent checkbox, keyboard Space/Enter submission, disabled publish/close controls while waiting, live progress, success after readback, focused Explore the collective action.
+- Validation: empty form marked all five fields and consent invalid; focus moved to Twitter. Overlong pasted address remained intact and failed validation. The final correction/publish path retained the exact intended address.
+- Search/no-results/All projects reset, details and complete addresses, copy to clipboard, dismissible copy feedback, Escape dismissal, focus return, mobile information navigation and its persistent menu focus were exercised. Alphabetical/newest sorting also passed the component suite with two distinct records.
+- A reader context was set offline; refresh showed an actionable error and retained its existing card. Returning online and selecting Try again recovered shared results.
+- Page widths **320, 390, 672, 673, 768, 880, 1024, 1440 CSS px**: `scrollWidth <= innerWidth` in empty and populated directory passes. Form widths **320, 390, 768px**: no internal horizontal overflow. At 320×844, the focused Publish project button was visible at y≈704 with height≈48px after scrolling the dialog.
+- Native modal focus containment was checked using Tab/Shift+Tab; Escape returns to the trigger. Resizing from a desktop trigger to 320px now returns to the visible hero submit button instead of body. Focus rings were inspected in screenshots.
+- Both local Inter and Space Grotesk faces reported loaded. Full descriptions/addresses wrapped in mobile details. Reduced motion computed `scroll-behavior: auto` and button transition duration `0s`; forced-colors emulation retained a solid 3px focus outline.
+- Final live success flow logged no JavaScript page exceptions and no failed HTTP resource requests. Browser console included the handled Damus 503 noted above. Earlier checks also deliberately produced offline transport errors. The temporary preview process stopped once during work, causing connection-refused navigation attempts; restarting it and reloading the rebuilt export resolved those local preview failures.
+
+Final screenshots, captured from the final export and visually inspected:
+
+- [Production desktop / empty directory](screenshots/publishing-public-desktop.jpeg)
+- [Confirmed publication / desktop focus](screenshots/publishing-published-desktop.jpeg)
+- [Independent public reader / mobile](screenshots/publishing-public-reader-mobile.jpeg)
+- [Complete project details / mobile](screenshots/publishing-project-details-mobile.jpeg)
+- [Form validation / 320px focus](screenshots/publishing-form-validation-320.jpeg)
+- [Tablet navigation focus](screenshots/publishing-tablet-focus.jpeg)
+
+The mobile full-page screenshot was recaptured from scroll position zero after confirming an apparent skip-link overlay was a full-page screenshot artifact: the actual unfocused link's rectangle ended at y=−18.4, outside the viewport. No hiding CSS was added to conceal a live issue. Older `hackathon-*` and `restored-*` images document earlier releases only.
+
+## Better Interface consolidated review
+
+Applied the pinned `.imd/reads/skills/better-interface/REFERENCE.md`: workflow, all six core domains and implemented-design documentation method. Existing MIT/Apache attribution is preserved in `licenses/`. Scope covers changed publishing/directory states and their affected shared components; the established forest/lime artwork and overall layout were preserved.
+
+| Domain | Coverage | Evidence and remaining limits |
 | --- | --- | --- |
-| Accessibility | Source review of native controls, field labels, hints/errors, `aria-invalid`, alerts, status count, focus CSS and reduced-motion guards. Browser keyboard sequence, modal focus return and visible Twitter-field focus ring inspected. axe reported zero violations and zero incomplete checks in the desktop empty directory and validated form states. | No screen-reader session or comprehensive focus-ring measurement across all backgrounds; axe is not full accessibility certification. |
-| Layout | Preserved container, reading order, toolbar and modal structure. Page scroll width equaled viewport width at 320, 390, 672, 673, 768, 880, 1024 and 1440 CSS px. Form had no horizontal overflow at 320, 390 or 768px. Desktop/mobile/tablet screenshots viewed. | Other widths, locales, RTL and physical devices not tested. Native browser zoom not tested. |
-| Writing | Reviewed the header, principles, how-to/public dialogs, empty/search states, form hints, errors and success. Removed verified-account and fictional-example claims. Empty state leads to Submit; failed requests explain retry; unavailable publishing is explained before input. | Hosted server responses and external account contents not reviewed. |
-| Typography | Local Inter and Space Grotesk loaded. Existing type hierarchy, wrapping and full-record access retained. Form fields stay 16px; mobile sort changed from 11px to 16px. Form and directory screenshots show readable wrapping in inspected states. | No Safari/iOS zoom test. The 390px page also passed a separate 200% root-font enlargement check; this is not native browser zoom. |
-| Colors | Existing forest/lime/sage semantic tokens retained. Measured five actual form foreground/background pairs below, all above 4.5:1. Error state also uses text and invalid-field semantics. | These selected measurements do not certify all artwork, gradient, hover, focus or disabled combinations. No dark theme exists. |
-| UI | Reused native dialogs, card/details patterns, button states, empty/retry states and in-flow form actions. Removed obsolete authentication styling; kept 150ms opt-in transitions and reduced-motion behavior. Viewed final screenshots. | Motion reviewed in source and with reduced-motion emulation, not replayed at 10% speed; full hover/active-state screenshots not captured. |
+| Accessibility | **Checked** | Native labels/controls/dialog, required consent, error associations, live progress, disabled busy state, synchronous error focus, focus return including resize, Tab/Shift+Tab, Escape, copy feedback, reduced-motion and forced-colors emulation. axe-core: zero automatic violations in mobile populated directory (41 checks passed) and desktop invalid form (24 passed). Contrast had incomplete automatic checks due to overlap/background detection. No screen-reader session or physical touch device. |
+| Layout | **Checked** | Existing container/grid/breakpoints reviewed. Added refresh/sort group wraps with 12px gaps. Empty, populated, detail and invalid-form states inspected at representative widths; no measured horizontal overflow. Long descriptions and full addresses remain reachable. Browser-native 200% zoom and physical-device safe areas not tested. RTL/localized variants are not implemented, so variant review is not applicable. |
+| Writing | **Checked** | Publish/Refresh/Try again labels match actions; public-network disclosure and consent precede writes. Errors give recovery and partial-save copy admits that a record may already be visible. Ownership remains explicitly self-reported; unavailable setup copy removed from the default flow. |
+| Typography | **Checked** | Local font loading, source roles/weights, mobile 16px fields, wrapping addresses/descriptions and tabular counts checked. Success subheading reduced to 19px to respect the 21px/19px dialog-title hierarchy. No native browser zoom or additional language/italics variants checked. |
+| Colors | **Checked** | Reused the existing hex semantic tokens. Browser-computed opaque form/action contrast pairs measured below. No automatic contrast violations; incomplete axe checks remain explicitly unclaimed. Image/mask composites and every possible hover/focus adjacency were not exhaustively pixel sampled. No alternate theme exists. |
+| UI | **Checked** | Empty/error/loading/success/duplicate, disabled busy controls, retry behavior, primary/secondary actions, focus states and responsive dialog scrolling inspected. Refresh uses an existing-style bordered control; hover remains pointer-gated. Existing 150ms motion is opt-in; no autoplay or new animation. No 10%-speed Animations-panel playback was performed. |
 
-### Findings and corrections
+### Findings and fixes
 
-Locations below point to the final implementation; each row consolidates one root cause rather than counting every affected string separately.
+Locations refer to the final source, where each correction can be inspected.
 
-| Priority / domain | Finding and impact | Fix and recheck |
+| Severity / domain | Source | Evidence, impact, correction and recheck |
 | --- | --- | --- |
-| High · UI / writing | Removing only the header login would leave submission actions blocked by the old Twitter gate and token-requiring endpoint. | Direct form in `src/App.tsx:102` and `src/components/Submission.tsx:7`; account provider removed from `src/main.tsx:6`; token-free transport in `src/lib/submissions.ts:79`; public validation/insert in `backend/supabase/functions/submit-project/core.ts:80`. Frontend, handler, Deno and browser tests passed. |
-| Medium · writing | Existing verified-account copy and checkmarks would misrepresent self-reported handles after authentication removal. | Replaced claims in `src/App.tsx:17`, `src/App.tsx:33`, `src/App.tsx:38` and `src/App.tsx:86`; editable labeled handle/hint in `src/components/Submission.tsx:55`. Source search and production inspection found no Privy/verification badges. |
-| Medium · layout / writing | Fictional seed records and category controls conflicted with the requested real-only, All projects directory. | Empty initialization in `src/App.tsx:44`, single view control in `src/App.tsx:90`, and search/sort-only logic in `src/lib/projects.ts:3`. Empty directory provides a submission action; mocked real records remain searchable. Rechecked empty/search/load-error and loaded states. |
-| Medium · writing | A directly accessible form needs to disclose missing publishing service before users enter details. | Added the visible notice at `src/components/Submission.tsx:52` and retained explicit no-save feedback at line 28. Form tests and browser run confirmed no request or false success when unconfigured. |
-| Low · typography / accessibility | The retained sort select used 11px text on narrow screens, below the guide's mobile-control guidance. | Added 16px type and 40px minimum height in `src/styles.css:358`; narrow-width checks and screenshots showed no resulting overflow. iOS behavior remains unverified. |
-
-No known blocking defect remains in the tested local flows. Live publishing cannot work until the updated service is deployed and configured.
+| HIGH · UI / writing | `src/services/directory.ts:6`, `src/services/public-directory.ts:162`, `src/components/Submission.tsx:31` | Blank Supabase settings previously guaranteed refusal. Added a functioning default shared provider; removed the unconditional unavailable gate. Live writes and independent-context reads passed. Supabase compatibility tests still pass. |
+| HIGH · UI / data integrity | `src/services/public-directory.ts:175` | Shared writes can partly succeed or acknowledge without serving a record. Reuse the signed event on retry and require two acknowledgements plus independent readbacks. Tests cover one saved copy, positive ACK without readback, retry, timeouts and one failed relay; final live run exercised a 503 failover. |
+| HIGH · accessibility / forms | `src/components/Submission.tsx:47` | The original 42-character input maximum silently clipped an overlong pasted address into a different valid address during the live test. Allow the entered value up to 256 characters and let exact-length validation reject it. Component and final browser checks retained the overlong value, marked it invalid, then stored the corrected 42-character value. |
+| MEDIUM · accessibility | `src/components/Submission.tsx:28` | Deferred animation-frame focus could move focus while a rapid correction was being filled, sending part of an address into Twitter. Focus now changes synchronously in the invalid-submit handler. The formerly failing live correction sequence then passed; all tests and build reran. |
+| MEDIUM · accessibility / UI | `src/components/Modal.tsx:16` | After opening from desktop and resizing to mobile, the hidden trigger could not receive focus. Cleanup now falls back to the first visible enabled main action. Browser recheck returned “Submit your project”. |
+| MEDIUM · UI / accessibility | `src/components/Modal.tsx:22`, `src/components/Submission.tsx:64` | Closing during a shared write could discard the pending form and its outcome. Busy state disables dismissal and communicates progress until the bounded request completes. Real publish showed disabled close/submit; success focused the next action. |
+| MEDIUM · UI / layout | `src/App.tsx:59`, `src/App.tsx:106`, `src/styles.css:204` | A directory loaded only once could stay stale, and a refresh failure could hide known records. Added manual/focus/timed refresh, overlapping-request suppression and retained cards on error. Independent-reader refresh and offline recovery passed; controls fit at 320px. |
+| MEDIUM · typography | `src/styles.css:228` | Original 32px success h3 overpowered the 21px dialog h2. Reduced h3 to 19px; final success screenshot confirms the hierarchy. |
 
 ### Measured contrast
 
-Measured in Chromium from computed text colors and the nearest opaque rendered background in the validated form; WCAG relative-luminance calculation. All five pairs are ordinary-sized text with a 4.5:1 threshold.
+Computed from actual browser foreground/background styles with the WCAG sRGB luminance formula. These rows identify opaque surfaces, not inferred image/alpha composites. Normal text target: 4.5:1; the focus perimeter target: 3:1.
 
-| Element | Foreground / background | Ratio |
-| --- | --- | --- |
-| Form introduction | `#5c685d` / `#ffffff` | 5.84:1 |
-| Publishing availability notice | `#5c685d` / `#ffffff` | 5.84:1 |
-| Field error | `#a72d29` / `#ffffff` | 6.88:1 |
-| Input text | `#202d23` / `#ffffff` | 14.37:1 |
-| Publish button text | `#11291d` / `#c3ee86` | 11.70:1 |
+| Pair | Ratio |
+| --- | --- |
+| Publishing disclosure / white dialog (`#5c685d` / `#ffffff`) | 5.84:1 |
+| Field hint / white dialog (`#5c685d` / `#ffffff`) | 5.84:1 |
+| Error text / white (`#a72d29` / `#ffffff`) | 6.88:1 |
+| Error text / alert (`#a72d29` / `#fff1ed`) | 6.25:1 |
+| Field label or refresh text / white (`#202d23` / `#ffffff`) | 14.37:1 |
+| Primary action text / lime (`#11291d` / `#c3ee86`) | 11.70:1 |
+| Focus outline / white dialog (`#47713c` / `#ffffff`) | 5.68:1 |
 
-### Rendered evidence
+## Delivery and limitations
 
-Final images were opened and reviewed, not only generated:
+The complete export is **539,673 bytes**. The complete final source/export/document snapshot was measured separately from disposable browser/scratch outputs; size results are in `delivery-size.json`. Historical Git bundling was unavailable in the read-only partial checkout because it attempted to fetch missing history objects. An isolated temporary bare Git store was used to measure a bundle of the complete final file snapshot, without changing the repository’s Git metadata. The supplied checkout’s full historical bundle size is not claimed. Source, existing lockfile, runtime fonts/artwork/licenses, design documentation, reproducible component/transport tests and this record accompany it. No package archive, dependency/cache directory, submodule, secret, ignore-file change or build-configuration change is included. `artifacts/` contains inspection outputs; repository copies of evidence are in `docs/` because the environment excludes `artifacts/` from Git. Nothing required relies on `test/scratch/`.
 
-- [Desktop directory, 1440px](../artifacts/directory-1440.jpeg)
-- [Mobile directory, 390px](../artifacts/directory-390.jpeg)
-- [Tablet directory, 768px](../artifacts/directory-768.jpeg)
-- [Desktop validation and focus](../artifacts/submission-desktop.jpeg)
-- [Mobile validation and focus](../artifacts/submission-mobile.jpeg)
-- [Browser results](../artifacts/browser-validation.json)
+No remaining reproduced blocker exists in the checked flow. Relay uptime and permanent retention are not guaranteed: services can remove records, change policies or deny access. Anonymous publication is vulnerable to spam and false ownership claims. Deduplication uses signed-but-user-chosen timestamps, not a trusted ownership registry; concurrent claims are not prevented by a database constraint. A large/dense history can exceed the documented traversal bounds and needs a larger index or managed provider. These limits are also recorded in the README and appropriate public-sharing copy.
 
-Form screenshots show the top of its scrollable panel. The lower fields, consent and Publish action were reached during keyboard and submission checks. These screenshots show the actual unconfigured export, not test records presented as public submissions.
-
-## Export and submission integrity
-
-`dist/` contains 10 files totaling **493,957 bytes**: HTML, one JS chunk, one stylesheet, runtime config, favicon, local illustration, two fonts and two font licenses. Relative asset URLs were checked by serving the actual export at `/preview/`; there is no routing rewrite dependency. Obsolete chunks were removed, while all required runtime assets remain.
-
-All deliverable files together are under 3 MiB uncompressed, comfortably below the 8,388,608-byte submission budget. Dependency/cache folders and dependency archives are outside the repository. No ignore-file edit or path budget was needed. The existing `package.json`, `package-lock.json`, `vite.config.ts`, `tsconfig.json`, `backend/deno.json`, `backend/deno.lock` and `backend/supabase/config.toml` match the initial SHA-256 snapshot. No `.git/`, `.github/`, `.env`, root `lib/`, `node_modules/`, dependency manifest or lockfile was modified.
-
-## Remaining limitations
-
-No live Supabase deployment, SQL migration, real multi-user persistence, hosted CORS/RLS enforcement, domain mapping, DNS/HTTPS change or on-chain action was performed. Publish success was tested with mocked persistence only. The checked-in config is empty, so the shipped form clearly reports publishing unavailable. Deployment must replace the old Twitter-authenticated endpoint with the updated public one.
-
-No screen reader, Firefox, Safari, physical mobile device, native 200% zoom, forced-colors rendering, RTL/localization or exhaustive contrast audit was performed. Authentication has intentionally been removed; account and address ownership are not verified. Moderation, rate limiting, editing and deletion remain absent. These boundaries are documented in the README and service notes rather than presented as completed features.
+Unperformed: final-origin deployment/DNS/CSP checks, long-term retention, Supabase deployment/migrations/live RLS, Deno checks for the unchanged backend, native zoom, screen-reader session, Safari/Firefox, physical devices and exhaustive contrast on artwork composites. No browser snapshot or automated audit is represented as a substitute for those checks.

@@ -1,19 +1,19 @@
 # Identity MD hackathon · Pepe Collective
 
-The existing green Pepe Collective website now opens its five-field submission form directly, without Twitter sign-in. Twitter usernames are entered by the submitter and are not verified. The directory contains only published records: fictional preview projects and the AI agents, Developer tools and Community filters have been removed. **All projects**, search, sorting, project details and address copying remain available.
+Anyone can now submit a project without signing in or configuring a private backend. The finished static site in `dist/` stores submissions on three public Nostr relays and loads the shared directory for every visitor. The green Pepe artwork, hackathon copy, five-field form, All projects view, search, sorting and project details are preserved.
 
-The hero artwork, “Small pepes” headline, hackathon description and `https://hackathon.sites.imd.fun/` metadata are preserved. The finished static export is in `dist/`, alongside the source and existing `package-lock.json`.
+Publishing succeeds only after **two independent relays acknowledge the submission and return a valid stored copy on a new connection**. This is shared network storage, not localStorage. A live submission from the production export was retrieved in a separate browser context after refresh and reload; test records use separate validation directories and do not appear in the public hackathon directory.
 
 ## Install, preview and rebuild
 
-Use Node.js 22 or newer:
+Use Node.js 22 or newer and the supplied, unchanged lockfile:
 
 ```sh
 npm ci
 npm run dev
 ```
 
-Open the local URL printed by Vite. To check and rebuild:
+To validate and build:
 
 ```sh
 npm run typecheck
@@ -23,57 +23,60 @@ npm run build
 npm run preview
 ```
 
-A build-free preview also works with `python3 -m http.server 8080 --directory dist`. Serve over HTTP instead of opening `index.html` as a local file. Backend entry-point checks use Deno: from `backend/`, run `deno task --frozen check` and `deno task --frozen test`.
+Vite prints the preview URL. For a build-free preview, use `python3 -m http.server 8080 --directory dist`. Open the site over HTTP on localhost, not as a `file:` URL. Production hosting must use HTTPS for browser cryptography and secure WebSockets.
 
-The dependency manifests, lockfiles and existing build configuration were left unchanged. The unused Privy dependency remains in the protected manifest but is no longer imported or bundled. This assignment installed packages, built and ran checks in an isolated `/tmp` source copy; no dependency directories, caches, ignore-file changes or submodules were added to the repository.
+The original package manifest, lockfiles and build configuration are unchanged. Signing uses the existing locked `@noble/curves` 1.9.1 and `@noble/hashes` 1.8.0 packages; their MIT licenses are included in the export. Privy and wallet packages in the protected manifest remain unused by the frontend. Development dependencies and caches are not part of the deliverable.
 
-## Public submissions
+## Public storage and behavior
 
-Without backend configuration, the directory is empty and the form explains that publishing is unavailable. Form validation works, but no details are stored and no success is claimed. Closing the form discards its unfinished draft.
+The default settings in `public/config.js` work without API keys:
 
-For shared persistence:
+```js
+window.PEPE_CONFIG = {
+  supabaseUrl: '',
+  supabaseAnonKey: '',
+  relayUrls: ['wss://relay.damus.io', 'wss://relay.primal.net', 'wss://nostr.mom'],
+  directoryTag: 'identitymd-593-projects-v1',
+};
+```
 
-1. Provision or update the Supabase service described in [backend/README.md](backend/README.md). Deploy the updated `submit-project` Edge Function: the old endpoint requires a Twitter token and is incompatible with this frontend. Existing records and database access policies remain intact.
-2. Set public identifiers in `public/config.js`:
+`src/services/public-directory.ts` publishes signed Nostr kind-1 events containing the five fields and the schema `identitymd-project-v1`. The site’s tag keeps these records discoverable as one directory. A random signing key is generated in memory for each new submission and discarded after signing; no account, wallet connection, extension, transaction or user-held key is required. Event IDs, signatures, schema, namespace and field values are validated before display. The transport follows the [Nostr NIP-01 event and relay protocol](https://github.com/nostr-protocol/nips/blob/master/01.md).
 
-   ```js
-   window.PEPE_CONFIG = {
-     supabaseUrl: 'https://your-project.supabase.co',
-     supabaseAnonKey: 'your-public-anon-or-publishable-key',
-   };
-   ```
+- All five fields become public after explicit consent. Records are also readable outside this website. Editing and removal are not available here; other people may retain copies.
+- Twitter handles accept 1–15 letters, numbers or underscores. Project usernames accept 3–32 letters, numbers, underscores or hyphens. Descriptions accept 20–1,000 characters. Contract and wallet fields require nonzero EVM addresses. Oversized pasted addresses are rejected without silently shortening them.
+- The form checks for an existing contract before writing. Reads merge copies by event ID and contract; competing claims use the earliest signed event timestamp, then event ID. This is a display rule, not a transactional uniqueness guarantee or proof of ownership. Accounts, wallets and contracts remain self-reported.
+- Reads require two completed relay responses; writes require two acknowledgements **and** readbacks. A failed or uncertain save keeps the form values. Retrying unchanged details in the same page reuses the signed event, so an interrupted save is not duplicated. After reloading, search for the contract before resubmitting.
+- The directory loads on each visit and refreshes on window focus, every 60 seconds while visible, and via **Refresh projects**. Failed refresh retains already loaded cards and offers **Try again**. A successful local publication cannot be erased by an earlier request completing late.
+- Connections have 10-second timeouts. History retrieval uses overlapping 250-event pages, a 20-second traversal deadline checked between pages, and a 40-page ceiling. Stalled timestamp pages and oversized histories report a load failure rather than pretending to be complete. Dense histories of 250 or more events at one second need a larger-scale index/provider.
 
-3. Rebuild and publish `dist/`. Keep `public/config.js` synchronized if changing the exported `dist/config.js` directly.
-4. Verify a submission on the final origin and confirm it appears in another browser. Live database, hosted endpoint and production-origin checks have not been performed in this assignment.
+**Storage limitations:** these independent public relays are third-party services with their own availability, rate limits and retention policies. Replication and readback confirm storage at publication time, not permanent archival. There is no moderation, ownership verification, spam protection or recovery/edit account. A relay signature establishes record integrity, not the truth of the submitted claims. The site remains readable as a static page when services are unreachable, but shared reads and writes need connectivity to enough relays. Do not share private information.
 
-All five details become public after explicit consent: Twitter username, project username, EVM contract, project description and EVM wallet. Twitter handles accept 1–15 letters, numbers or underscores; project usernames accept 3–32 letters, numbers, underscores or hyphens; descriptions accept 20–1,000 characters. Addresses must be nonzero EVM addresses. Optional leading `@` and surrounding whitespace are normalized. A contract may appear only once.
+Keep the production directory tag stable. Changing it starts a separate directory. Changing relay sets requires copying the signed history to the new relays first; this site does not migrate it automatically. Hosting with a Content Security Policy must permit `connect-src` to the configured `wss:` relay origins.
 
-Neither account nor address ownership is verified. There is no wallet connection, transaction or OAuth flow. The server validates input and retains database write credentials server-side. Publishing is open to visitors; moderation, rate limiting, edits and deletion are not implemented. Failed saves retain entered details; success requires a server-returned record.
+## Optional Supabase provider
+
+The existing Supabase integration remains available in [backend/README.md](backend/README.md). Supplying both public Supabase identifiers selects that provider instead of Nostr. It uses the preserved Edge Function and Postgres policies. Never place a service-role key in frontend configuration. Changing providers does not migrate data. No Supabase account, credentials or service deployment were supplied or created for this update.
 
 ## Publish
 
-Publish **every file inside `dist/`**: `index.html`, `assets/`, `fonts/`, `images/`, `favicon.svg` and `config.js`. The publisher serves this export directly without rebuilding. Source, lockfile and the complete export are included in this submission.
+Upload **all contents of `dist/`** to the static publisher, including `index.html`, `assets/`, `config.js`, `fonts/`, `images/`, `licenses/` and `favicon.svg`. The publisher serves these committed export files directly; it does not rebuild. Source and the existing `package-lock.json` accompany the export.
 
-Vite retains `base: './'`. Runtime assets use relative URLs and navigation uses hashes/dialogs, so the export supports static gateway subpaths without server rewrites. Use a trailing slash for a hosted subpath. Local artwork and fonts work without external visual services; shared publishing requires the configured backend.
+Vite retains `base: './'`. Built script/style/font/artwork URLs are relative; hash navigation and native dialogs require no server route rewrites. The export was tested at `/preview/`. Use a trailing slash for gateway subpaths. Local fonts and artwork are bundled.
 
-The intended public URL remains **https://hackathon.sites.imd.fun/**. Domain/DNS/HTTPS and the original ENS/IPFS publisher mapping are external hosting settings; this job did not change or verify them. Set the backend's `ALLOWED_ORIGINS` for the actual site origin. No on-chain action or deployment was performed.
+The intended public URL remains **https://hackathon.sites.imd.fun/** under the existing publisher/ENS mapping. This assignment prepares the next static export; it does not change DNS, deploy to that origin or perform any on-chain action. Rebuild after changing `public/config.js` and publish the whole export together. Do not add dependency folders, package caches, registry mirrors or archive bundles to Git.
 
-Keep dependencies, caches and archives out of Git at every nesting level. Do not publish historical documentation screenshots as site assets. [DESIGN.md](DESIGN.md) describes the implemented design; [licenses/NOTICE.md](licenses/NOTICE.md) retains guide attribution.
+## Actual validation
 
-## Validation
-
-Actual results for this update are recorded in [docs/validation.md](docs/validation.md), including production build, typecheck, interaction checks, the six-domain Better Interface review and remaining limitations. Older records and screenshots describe earlier versions and are not evidence for this release.
-
-On 2026-10-06, with Node 24.21.0:
+On 2026-10-06, using Node 24.21.0, npm 11.19.0 and Chromium 154:
 
 | Check | Result |
 | --- | --- |
 | `npm run typecheck` | Passed. |
-| `npm test` | 11 frontend interaction tests passed. |
-| `npm run test:backend` | 9 handler/transport tests passed. |
-| `deno task --frozen check` / `deno task --frozen test` | Typecheck passed; 3 endpoint tests passed with Deno 2.9.6. |
-| `npm run build` | Passed; the complete 493,957-byte export is in `dist/`. |
-| Chromium production-export checks at `/preview/` | Passed at eight widths (320–1440px); no page overflow or unexpected resource/console failures. Keyboard/form/navigation and mocked public-publishing interactions passed. |
-| Better Interface | All six domains reviewed; applicable findings fixed. axe-core found zero violations in the checked desktop directory and validation-form states. |
+| `npm test` | 24 tests passed: form consent/validation/retry, directory interactions, signed events, multi-relay persistence, duplicates, timeouts, readback and pagination. |
+| `npm run test:backend` | All 9 existing Supabase handler/transport tests passed. |
+| `npm run build` | Passed; complete relative-path export included in `dist/`. |
+| Production export / live storage | Real relay writes and independent-browser reads passed, including reload with empty browser storage. |
+| Responsive / keyboard | Checked widths from 320 to 1440px, form errors, focus, mobile navigation, details, copy, search and offline recovery. |
+| Better Interface | All six domains reviewed; applicable findings fixed. axe-core found zero automatic violations in checked directory/form states, with some contrast checks incomplete. |
 
-Vite reports that the separate runtime `config.js` is not bundled; it loaded correctly in the export. No live service publication, database migration, domain change, screen-reader session, physical-device check or native browser-zoom test was performed. Current screenshots and detailed evidence are linked from the validation record. The deliverable is below the 8 MiB limit with no bundled dependency caches.
+The separate runtime `config.js` causes Vite’s expected “can’t be bundled” notice; its production request succeeded. The complete command results, evidence, review findings and limitations are in [docs/validation.md](docs/validation.md). [DESIGN.md](DESIGN.md) describes the final implemented design; [licenses/NOTICE.md](licenses/NOTICE.md) retains attribution. Physical devices, screen-reader sessions, native browser zoom, long-term relay retention and the final hosted origin have not been verified. The Deno suite was not rerun because the optional backend code is unchanged.

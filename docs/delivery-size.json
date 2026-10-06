@@ -1,0 +1,9 @@
+{
+  "files": 74,
+  "raw_file_bytes": 2730967,
+  "uncompressed_tar_bytes": 2867200,
+  "git_snapshot_bundle_bytes": 1845620,
+  "limit_bytes": 8388608,
+  "dist_bytes": 539673,
+  "scope": "Complete final file snapshot; historical Git ancestry excluded. Excludes this small size report itself and disposable scratch/ignored artifacts."
+}

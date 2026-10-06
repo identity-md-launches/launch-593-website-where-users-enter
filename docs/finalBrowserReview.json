@@ -1,0 +1,51 @@
+{
+  "directoryAudit": {
+    "violations": [],
+    "passes": 41,
+    "incomplete": [
+      "color-contrast"
+    ]
+  },
+  "formAudit": {
+    "violations": [],
+    "passes": 24,
+    "incomplete": [
+      "color-contrast"
+    ]
+  },
+  "idempotent": true,
+  "cardCount": 1,
+  "duplicate": {
+    "message": "This contract is already in the public directory. Search for its address to find the submission.",
+    "retained": "0x2626262626262626262626262626262626262626"
+  },
+  "formWidths": [
+    {
+      "width": 320,
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "overflow": false
+    },
+    {
+      "width": 768,
+      "overflow": false
+    }
+  ],
+  "bottomVisible": {
+    "x": 40,
+    "y": 703.59375,
+    "width": 240,
+    "height": 47.59375
+  },
+  "reduced": {
+    "scroll": "auto",
+    "transition": "0s"
+  },
+  "forced": {
+    "outline": "solid",
+    "width": "3px"
+  },
+  "productionCards": 0
+}

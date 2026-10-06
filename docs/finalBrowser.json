@@ -1,0 +1,68 @@
+{
+  "tag": "identitymd-593-validation-20261006-final",
+  "resizedFocus": "Submit your project",
+  "overlong": {
+    "value": "0x26262626262626262626262626262626262626261234",
+    "invalid": "true"
+  },
+  "focused": "Explore the collective",
+  "acks": [
+    {
+      "relay": "wss://relay.primal.net/",
+      "id": "16381d4b599be7b7803fae3246616f52b1685f6904a35bb844c5ca0f14c1a725",
+      "accepted": true
+    },
+    {
+      "relay": "wss://nostr.mom/",
+      "id": "16381d4b599be7b7803fae3246616f52b1685f6904a35bb844c5ca0f14c1a725",
+      "accepted": true
+    }
+  ],
+  "readerStorage": {
+    "local": 0,
+    "session": 0
+  },
+  "fullAddresses": [
+    "0x2626262626262626262626262626262626262626",
+    "0x2727272727272727272727272727272727272727"
+  ],
+  "sizes": [
+    {
+      "width": 320,
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "overflow": false
+    },
+    {
+      "width": 672,
+      "overflow": false
+    },
+    {
+      "width": 673,
+      "overflow": false
+    },
+    {
+      "width": 768,
+      "overflow": false
+    },
+    {
+      "width": 880,
+      "overflow": false
+    },
+    {
+      "width": 1024,
+      "overflow": false
+    },
+    {
+      "width": 1440,
+      "overflow": false
+    }
+  ],
+  "searchEmpty": true,
+  "copied": "0x2626262626262626262626262626262626262626",
+  "detailFocus": "release_check",
+  "errors": [],
+  "failed": []
+}
