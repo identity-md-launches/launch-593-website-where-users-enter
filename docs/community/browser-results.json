@@ -1,0 +1,190 @@
+{
+  "date": "2026-10-06T12:56:13.709Z",
+  "viewports": [
+    {
+      "label": "directory",
+      "width": 320,
+      "height": 1000,
+      "page": 320,
+      "dialog": null
+    },
+    {
+      "label": "directory",
+      "width": 390,
+      "height": 1000,
+      "page": 390,
+      "dialog": null
+    },
+    {
+      "label": "directory",
+      "width": 672,
+      "height": 1000,
+      "page": 672,
+      "dialog": null
+    },
+    {
+      "label": "directory",
+      "width": 673,
+      "height": 1000,
+      "page": 673,
+      "dialog": null
+    },
+    {
+      "label": "directory",
+      "width": 768,
+      "height": 1000,
+      "page": 768,
+      "dialog": null
+    },
+    {
+      "label": "directory",
+      "width": 880,
+      "height": 1000,
+      "page": 880,
+      "dialog": null
+    },
+    {
+      "label": "directory",
+      "width": 1024,
+      "height": 1000,
+      "page": 1024,
+      "dialog": null
+    },
+    {
+      "label": "directory",
+      "width": 1440,
+      "height": 1000,
+      "page": 1440,
+      "dialog": null
+    },
+    {
+      "label": "invalid form",
+      "width": 320,
+      "height": 900,
+      "page": 320,
+      "dialog": {
+        "client": 280,
+        "scroll": 280,
+        "top": 45,
+        "bottom": 855
+      }
+    },
+    {
+      "label": "tablet form",
+      "width": 768,
+      "height": 1000,
+      "page": 768,
+      "dialog": {
+        "client": 658,
+        "scroll": 658,
+        "top": 50,
+        "bottom": 950
+      }
+    },
+    {
+      "label": "details",
+      "width": 390,
+      "height": 844,
+      "page": 390,
+      "dialog": {
+        "client": 350,
+        "scroll": 350,
+        "top": 92.21875,
+        "bottom": 751.78125
+      }
+    }
+  ],
+  "screenshots": [
+    "community-desktop-empty.jpeg",
+    "community-mobile-empty.jpeg",
+    "community-form-errors-320.jpeg",
+    "community-wallet-note-320.jpeg",
+    "community-tablet-focus.jpeg",
+    "community-mobile-details.jpeg"
+  ],
+  "audits": [
+    {
+      "state": "empty directory",
+      "violations": [],
+      "incomplete": [
+        "color-contrast"
+      ]
+    },
+    {
+      "state": "invalid form",
+      "violations": [],
+      "incomplete": [
+        "color-contrast"
+      ]
+    },
+    {
+      "state": "project details",
+      "violations": [],
+      "incomplete": [
+        "color-contrast"
+      ]
+    }
+  ],
+  "checks": [
+    "Empty new directory, canonical, Open Graph and footer URL",
+    "Keyboard submit entry, optional/required semantics, four required-field errors, consent, first invalid focus, wallet payout hint",
+    "Keyboard publication with blank personal Twitter; mocked relay ACK/readback; success focus; search reset; sorting; project contact; copy; Escape",
+    "Fresh browser and reload read same mocked shared record, no localStorage; failed refresh preserves record and retry recovers"
+  ],
+  "errors": [],
+  "failedResources": [],
+  "browser": "141.0.7390.37",
+  "liveRead": {
+    "count": 0,
+    "error": "",
+    "empty": true
+  },
+  "reducedMotion": "0s",
+  "forcedColorsFocus": {
+    "outline": "solid",
+    "width": "3px"
+  },
+  "fonts": [
+    {
+      "family": "Inter",
+      "status": "loaded"
+    },
+    {
+      "family": "Space Grotesk",
+      "status": "loaded"
+    }
+  ],
+  "colors": [
+    {
+      "selector": "#wallet-hint",
+      "foreground": "rgb(92, 104, 93)",
+      "background": "rgb(255, 255, 255)",
+      "contrast": 5.84
+    },
+    {
+      "selector": "label[for=twitterUsername] > span",
+      "foreground": "rgb(106, 117, 105)",
+      "background": "rgb(255, 255, 255)",
+      "contrast": 4.82
+    },
+    {
+      "selector": ".field-error",
+      "foreground": "rgb(167, 45, 41)",
+      "background": "rgb(255, 255, 255)",
+      "contrast": 6.88
+    },
+    {
+      "selector": ".form-alert",
+      "foreground": "rgb(167, 45, 41)",
+      "background": "rgb(255, 241, 237)",
+      "contrast": 6.25
+    },
+    {
+      "selector": ".form-footer .button",
+      "foreground": "rgb(17, 41, 29)",
+      "background": "rgb(195, 238, 134)",
+      "contrast": 11.7
+    }
+  ],
+  "result": "passed"
+}

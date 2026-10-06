@@ -41,7 +41,7 @@ Deno.test('invalid self-reported handle is rejected before network', async () =>
   let calls = 0;
   globalThis.fetch = (() => { calls++; throw new Error('No network expected'); }) as typeof fetch;
   try {
-    for (const twitterUsername of ['', 'bad handle', 'x'.repeat(16)]) {
+    for (const twitterUsername of ['@', 'bad handle', 'x'.repeat(16)]) {
       const response = await handler(req({ ...input, twitterUsername }));
       assert(response.status === 400, 'invalid handle should receive 400');
     }

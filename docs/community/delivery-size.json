@@ -1,0 +1,27 @@
+{
+  "limitBytes": 8388608,
+  "fileCountExcludingThisReport": 85,
+  "totalFileBytesExcludingThisReport": 3241311,
+  "distBytes": 540541,
+  "protectedFilesUnchanged": true,
+  "dependencyCachesOrArchives": false,
+  "submodules": false,
+  "distMatchesBuild": true,
+  "exportSha256": {
+    "dist/assets/index-5tdW3ZZ5.css": "17783c24df6ca96cb2c5051b21b9859f1a59843b8ed564d1f7c3d444183880eb",
+    "dist/assets/index-BJIo3dgW.js": "d4a90824b869f7b79f3c84a95d865b50a96d8b3b8262c059d9998b22534c171b",
+    "dist/config.js": "8c203200ab9f37fd6b5ed8a41179d4495770702411d1697993010df78061f8c3",
+    "dist/favicon.svg": "8cc1df7de1d9517aa47e634b1ee444654e0555ab8f458cb155f98a53bbb5a165",
+    "dist/fonts/Inter-LICENSE.txt": "5b9321a4298cfeb6b34354164a1c3afc3db114569984c502b9b35d988fd58c57",
+    "dist/fonts/SpaceGrotesk-LICENSE.txt": "564ce565c371c5e5bbf286006565a7c9aa55a9f56e7ca58d56e05d649dd61a72",
+    "dist/fonts/inter-latin.woff2": "3100e775e8616cd2611beecfa23a4263d7037586789b43f035236a2e6fbd4c62",
+    "dist/fonts/space-grotesk-latin.woff2": "0640890476fc1198ab4de571fb658de443c4d85b66466ec09534a8737ab1ce9d",
+    "dist/images/pepe-squad.webp": "ad01f810447f81695898b2522afa8d0a48065c5c18fce0dcfa3cc3018cbd4117",
+    "dist/index.html": "645affe780661393a9eff0e61d467dfa4217442cc899b1fe64827f1f4700f0e7",
+    "dist/licenses/noble-curves-LICENSE.txt": "4f221aee6e072336700c408c68ab3b96a3fc09f6aebe6f48f1bd99e5ef13faec",
+    "dist/licenses/noble-hashes-LICENSE.txt": "4f221aee6e072336700c408c68ab3b96a3fc09f6aebe6f48f1bd99e5ef13faec"
+  },
+  "tarBytes": 3399680,
+  "totalFileBytes": 3243095,
+  "inventory": "Existing tracked and nonignored new files; deleted files and test/scratch excluded. Uncompressed tar is a conservative delivery-payload measurement, not a remote Git-history bundle."
+}

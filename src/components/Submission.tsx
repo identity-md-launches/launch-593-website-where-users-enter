@@ -41,23 +41,23 @@ export function Submission({ onPublished, onClose, onBusyChange }: { onPublished
   if (published) return <div className="success-state"><span className="success-icon"><CheckCircle2 size={38} /></span><h3>You’re in the pond.</h3><p>Your project is published. Anyone can now see your project details in the collective.</p><button ref={successAction} className="button button-primary" onClick={onClose}>Explore the collective <ArrowRight size={17} /></button></div>;
 
   const field = (name: keyof ProjectInput, label: string, placeholder: string, hint: string, multiline = false) => <div className={`form-field ${multiline ? 'full-width' : ''}`}>
-    <label htmlFor={name}>{label}<span aria-hidden="true"> *</span></label>
+    <label htmlFor={name}>{label}{name === 'twitterUsername' ? <span> (optional)</span> : <span aria-hidden="true"> *</span>}</label>
     {multiline
       ? <textarea id={name} name={name} required rows={4} maxLength={1000} value={input[name]} placeholder={placeholder} aria-invalid={Boolean(errors[name])} aria-describedby={`${name}-hint ${errors[name] ? `${name}-error` : ''}`} onChange={event => setInput({ ...input, [name]: event.target.value })} />
-      : <input id={name} name={name} required type="text" maxLength={name === 'projectUsername' ? 33 : name === 'twitterUsername' ? 16 : 256} autoComplete={name === 'twitterUsername' ? 'username' : 'off'} autoCapitalize="none" spellCheck={false} value={input[name]} placeholder={placeholder} aria-invalid={Boolean(errors[name])} aria-describedby={`${name}-hint ${errors[name] ? `${name}-error` : ''}`} onChange={event => setInput({ ...input, [name]: event.target.value })} />}
+      : <input id={name} name={name} required={name !== 'twitterUsername'} type="text" maxLength={name === 'projectUsername' || name === 'twitterUsername' ? 16 : 256} autoComplete={name === 'twitterUsername' ? 'username' : 'off'} autoCapitalize="none" spellCheck={false} value={input[name]} placeholder={placeholder} aria-invalid={Boolean(errors[name])} aria-describedby={`${name}-hint ${errors[name] ? `${name}-error` : ''}`} onChange={event => setInput({ ...input, [name]: event.target.value })} />}
     <span id={`${name}-hint`} className="field-hint">{hint}{multiline && <span className="character-count">{input.description.length}/1,000</span>}</span>
     {errors[name] && <span id={`${name}-error`} className="field-error">{errors[name]}</span>}
   </div>;
 
   return <form className="project-form" onSubmit={publish} noValidate>
-    <p className="form-intro">Five details. One new possibility. Tell the collective what you’re building.</p>
-    <div className="public-callout"><Globe2 size={19} /><p><strong>Your submission will be public.</strong> Your Twitter, project username, contract, description, and wallet will be visible to everyone.</p></div>
+    <p className="form-intro">Tell the collective what you’re building. All fields are required except your personal Twitter account.</p>
+    <div className="public-callout"><Globe2 size={19} /><p><strong>Your submission will be public.</strong> Your project Twitter, contract, description, wallet, and personal Twitter (if provided) will be visible to everyone.</p></div>
     {usesPublicNetwork && <p className="publishing-notice">Shared on a public network, beyond this website. Only publish details you want others to keep. Editing and removal are not available here.</p>}
     <fieldset disabled={saving}>
       <legend className="sr-only">Project details</legend>
-      {field('twitterUsername', 'Twitter account', '@your_handle', 'Your Twitter username. Account ownership is not verified.')}
-      <div className="form-grid">{field('projectUsername', 'Project username', 'your_project', '3–32 letters, numbers, underscores, or hyphens.')}{field('contract', 'Contract address', '0x…', 'Your project’s EVM contract address.')}{field('description', 'About your project', 'What are you building, and who is it for?', '20–1,000 characters. Make it your own.', true)}<div className="full-width">{field('wallet', 'Wallet address', '0x…', 'A public EVM wallet address. No wallet connection needed.')}</div></div>
-      <label className="consent"><input id="public-consent" type="checkbox" checked={consent} onChange={event => setConsent(event.target.checked)} aria-invalid={consentError} aria-describedby={consentError ? 'consent-error' : undefined} /><span>I understand that all five details will be publicly visible.</span></label>
+      {field('twitterUsername', 'Personal Twitter account', '@your_handle', 'You can leave this blank. Account ownership is not verified.')}
+      <div className="form-grid">{field('projectUsername', 'Project Twitter account', '@your_project', 'Your project’s Twitter username. 1–15 letters, numbers, or underscores.')}{field('contract', 'Contract address', '0x…', 'Your project’s EVM contract address.')}{field('description', 'About your project', 'What are you building, and who is it for?', '20–1,000 characters. Make it your own.', true)}<div className="full-width">{field('wallet', 'Wallet address', '0x…', 'A public EVM wallet address. No wallet connection needed. Hackathon winner funds will be sent to this address.')}</div></div>
+      <label className="consent"><input id="public-consent" type="checkbox" required checked={consent} onChange={event => setConsent(event.target.checked)} aria-invalid={consentError} aria-describedby={consentError ? 'consent-error' : undefined} /><span>I understand that the details I submit will be publicly visible.</span></label>
       {consentError && <p className="field-error" id="consent-error">Confirm that you want to make these details public.</p>}
     </fieldset>
     <div className="form-alert" role="alert">{status}</div>

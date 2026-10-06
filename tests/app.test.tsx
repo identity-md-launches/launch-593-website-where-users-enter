@@ -17,6 +17,17 @@ function cardNames() { return screen.getAllByRole('article').map(card => within(
 async function renderDirectory() { render(<App />); await screen.findByRole('button', { name: 'zebra_tools' }); }
 
 describe('public project directory', () => {
+  it('shows a project contact and no empty personal Twitter link when personal Twitter is omitted', async () => {
+    mocks.fetch.mockResolvedValue([{ ...projects[0], twitterUsername: '' }]);
+    const user = userEvent.setup(); await renderDirectory();
+    expect(screen.queryByText(/^@$/)).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'zebra_tools' }));
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByText('Not provided')).toBeVisible();
+    expect(within(dialog).getAllByRole('link')).toHaveLength(1);
+    expect(within(dialog).getByRole('link', { name: /@zebra_tools/ })).toHaveAttribute('href', 'https://x.com/zebra_tools');
+  });
+
   it('shows an honest empty directory with only All projects and no sign-in or examples', async () => {
     mocks.fetch.mockResolvedValue([]);
     render(<App />);
@@ -102,7 +113,7 @@ describe('public project directory', () => {
     await user.click(screen.getAllByRole('button', { name: 'Submit your project' })[0]);
     const dialog = screen.getByRole('dialog', { name: 'Share your project' });
     expect(within(dialog).getAllByRole('textbox')).toHaveLength(5);
-    expect(within(dialog).getByRole('textbox', { name: /^Twitter account/ })).not.toHaveAttribute('readonly');
+    expect(within(dialog).getByRole('textbox', { name: /^Personal Twitter account/ })).not.toHaveAttribute('readonly');
     expect(within(dialog).queryByRole('button', { name: /Twitter/ })).not.toBeInTheDocument();
     expect(within(dialog).getByText(/Shared on a public network/)).toBeVisible();
     expect(within(dialog).queryByText(/Publishing is not available yet/)).not.toBeInTheDocument();

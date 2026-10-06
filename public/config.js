@@ -4,5 +4,5 @@ window.PEPE_CONFIG = {
   supabaseUrl: '',
   supabaseAnonKey: '',
   relayUrls: ['wss://relay.damus.io', 'wss://relay.primal.net', 'wss://nostr.mom'],
-  directoryTag: 'identitymd-593-projects-v1',
+  directoryTag: 'identitymd-593-community-hackathon-v2',
 };

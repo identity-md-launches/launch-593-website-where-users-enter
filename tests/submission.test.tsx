@@ -24,8 +24,8 @@ beforeEach(() => {
 });
 
 async function fillForm(user: ReturnType<typeof userEvent.setup>) {
-  await user.type(screen.getByRole('textbox', { name: /^Twitter account/ }), '@real_builder');
-  await user.type(screen.getByRole('textbox', { name: /^Project username/ }), ' @pond_tools ');
+  await user.type(screen.getByRole('textbox', { name: /^Personal Twitter account/ }), '@real_builder');
+  await user.type(screen.getByRole('textbox', { name: /^Project Twitter account/ }), ' @pond_tools ');
   await user.type(screen.getByRole('textbox', { name: /^Contract address/ }), contract);
   await user.type(screen.getByRole('textbox', { name: /^About your project/ }), ` ${description} `);
   await user.type(screen.getByRole('textbox', { name: /^Wallet address/ }), wallet);
@@ -39,6 +39,37 @@ function renderForm() {
 }
 
 describe('public submission without sign-in', () => {
+  it('publishes with personal Twitter blank while keeping the other four fields required', async () => {
+    const user = userEvent.setup();
+    mocks.submit.mockResolvedValue({ ...persisted, twitterUsername: '' });
+    const { onPublished } = renderForm();
+    await fillForm(user);
+    await user.clear(screen.getByRole('textbox', { name: /^Personal Twitter account/ }));
+    for (const name of [/^Project Twitter account/, /^Contract address/, /^About your project/, /^Wallet address/]) {
+      expect(screen.getByRole('textbox', { name })).toBeRequired();
+    }
+    expect(screen.getByRole('textbox', { name: /^Wallet address/ })).toHaveAccessibleDescription(/Hackathon winner funds will be sent to this address/);
+    await user.click(screen.getByRole('checkbox'));
+    await user.click(screen.getByRole('button', { name: 'Publish project' }));
+    await waitFor(() => expect(onPublished).toHaveBeenCalledWith({ ...persisted, twitterUsername: '' }));
+    expect(mocks.submit).toHaveBeenCalledWith(mocks.config, { twitterUsername: '', projectUsername: 'pond_tools', contract, wallet, description });
+  });
+
+  it('rejects malformed optional personal and required project Twitter handles', async () => {
+    const user = userEvent.setup(); renderForm();
+    await fillForm(user);
+    const personal = screen.getByRole('textbox', { name: /^Personal Twitter account/ });
+    const project = screen.getByRole('textbox', { name: /^Project Twitter account/ });
+    await user.clear(personal); await user.type(personal, '@');
+    await user.clear(project); await user.type(project, 'bad-handle');
+    await user.click(screen.getByRole('checkbox'));
+    await user.click(screen.getByRole('button', { name: 'Publish project' }));
+    expect(personal).toHaveAttribute('aria-invalid', 'true');
+    expect(project).toHaveAttribute('aria-invalid', 'true');
+    expect(personal).toHaveFocus();
+    expect(mocks.submit).not.toHaveBeenCalled();
+  });
+
   it('rejects an overlong pasted address instead of silently truncating it to another address', async () => {
     const user = userEvent.setup();
     renderForm();
@@ -54,14 +85,16 @@ describe('public submission without sign-in', () => {
   it('requires complete valid fields and explicit public visibility consent', async () => {
     const user = userEvent.setup();
     const { onPublished } = renderForm();
-    const twitter = screen.getByRole('textbox', { name: /^Twitter account/ });
+    const twitter = screen.getByRole('textbox', { name: /^Personal Twitter account/ });
     expect(twitter).toHaveValue('');
     expect(twitter).not.toHaveAttribute('readonly');
     await user.click(screen.getByRole('button', { name: 'Publish project' }));
-    for (const name of [/^Twitter account/, /^Project username/, /^Contract address/, /^About your project/, /^Wallet address/]) {
+    for (const name of [/^Project Twitter account/, /^Contract address/, /^About your project/, /^Wallet address/]) {
       expect(screen.getByRole('textbox', { name })).toHaveAttribute('aria-invalid', 'true');
     }
-    await waitFor(() => expect(twitter).toHaveFocus());
+    expect(twitter).toHaveAttribute('aria-invalid', 'false');
+    expect(twitter).not.toBeRequired();
+    await waitFor(() => expect(screen.getByRole('textbox', { name: /^Project Twitter account/ })).toHaveFocus());
     expect(screen.getByText('Confirm that you want to make these details public.')).toBeVisible();
     await fillForm(user);
     await user.click(screen.getByRole('button', { name: 'Publish project' }));
@@ -81,7 +114,7 @@ describe('public submission without sign-in', () => {
     await waitFor(() => expect(mocks.submit).toHaveBeenCalledOnce());
     expect(mocks.submit).toHaveBeenCalledWith(mocks.config, { twitterUsername: 'real_builder', projectUsername: 'pond_tools', contract, wallet, description });
     expect(screen.getByRole('button', { name: 'Publishing project…' })).toBeDisabled();
-    expect(screen.getByRole('textbox', { name: /^Project username/ })).toBeDisabled();
+    expect(screen.getByRole('textbox', { name: /^Project Twitter account/ })).toBeDisabled();
     expect(onPublished).not.toHaveBeenCalled();
     expect(screen.queryByText('You’re in the pond.')).not.toBeInTheDocument();
     await act(async () => { resolveSubmission(persisted); });
@@ -99,7 +132,7 @@ describe('public submission without sign-in', () => {
     await user.click(screen.getByRole('checkbox'));
     await user.click(screen.getByRole('button', { name: 'Publish project' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('The public directory is unavailable. Please try again.');
-    expect(screen.getByRole('textbox', { name: /^Project username/ })).toHaveValue(' @pond_tools ');
+    expect(screen.getByRole('textbox', { name: /^Project Twitter account/ })).toHaveValue(' @pond_tools ');
     expect(screen.getByRole('textbox', { name: /^Contract address/ })).toHaveValue(contract);
     expect(screen.getByRole('textbox', { name: /^About your project/ })).toHaveValue(` ${description} `);
     expect(screen.getByRole('textbox', { name: /^Wallet address/ })).toHaveValue(wallet);

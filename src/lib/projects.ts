@@ -12,8 +12,8 @@ export function filterProjects(projects: Project[], query: string, sort: string)
 
 export function validateProject(input: ProjectInput): Partial<Record<keyof ProjectInput, string>> {
   const errors: Partial<Record<keyof ProjectInput, string>> = {};
-  if (!/^[a-zA-Z0-9_]{1,15}$/.test(input.twitterUsername.trim().replace(/^@/, ''))) errors.twitterUsername = 'Use a Twitter username with 1–15 letters, numbers, or underscores.';
-  if (!/^[a-zA-Z0-9_-]{3,32}$/.test(input.projectUsername.trim().replace(/^@/, ''))) errors.projectUsername = 'Use 3–32 letters, numbers, underscores, or hyphens.';
+  if (input.twitterUsername.trim() && !/^[a-zA-Z0-9_]{1,15}$/.test(input.twitterUsername.trim().replace(/^@/, ''))) errors.twitterUsername = 'Use a Twitter username with 1–15 letters, numbers, or underscores.';
+  if (!/^[a-zA-Z0-9_]{1,15}$/.test(input.projectUsername.trim().replace(/^@/, ''))) errors.projectUsername = 'Enter your project’s Twitter username: 1–15 letters, numbers, or underscores.';
   for (const field of ['contract', 'wallet'] as const) {
     if (!/^0x[0-9a-fA-F]{40}$/.test(input[field].trim()) || /^0x0{40}$/i.test(input[field].trim())) {
       errors[field] = `Enter a nonzero EVM ${field === 'contract' ? 'contract' : 'wallet'} address: 0x followed by 40 hexadecimal characters.`;

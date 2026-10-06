@@ -75,7 +75,7 @@ export async function fetchProjects(config: BackendConfig): Promise<Project[]> {
   }
 }
 
-/** All five details are self-reported; no account sign-in is required. */
+/** Project details and the optional personal Twitter are self-reported; no account sign-in is required. */
 export async function submitProject(config: BackendConfig, input: ProjectInput): Promise<Project> {
   const body = await request(`${baseUrl(config)}/functions/v1/submit-project`, {
     method: 'POST',

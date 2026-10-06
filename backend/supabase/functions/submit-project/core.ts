@@ -15,7 +15,7 @@ export class HttpError extends Error {
 }
 
 export function validateInput(value: unknown): Input {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new HttpError(400, 'Enter all five project details.');
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new HttpError(400, 'Enter the required project details.');
   const raw = value as Record<string, unknown>;
   const input = {
     twitterUsername: typeof raw.twitterUsername === 'string' ? raw.twitterUsername.trim().replace(/^@/, '') : '',
@@ -24,8 +24,9 @@ export function validateInput(value: unknown): Input {
     description: typeof raw.description === 'string' ? raw.description.trim() : '',
     wallet: typeof raw.wallet === 'string' ? raw.wallet.trim() : '',
   };
-  if (!/^[A-Za-z0-9_]{1,15}$/.test(input.twitterUsername)) throw new HttpError(400, 'Use a Twitter username with 1–15 letters, numbers, or underscores.');
-  if (!/^[A-Za-z0-9_-]{3,32}$/.test(input.projectUsername)) throw new HttpError(400, 'Use 3–32 letters, numbers, underscores or hyphens for your project username.');
+  if (raw.twitterUsername != null && typeof raw.twitterUsername !== 'string') throw new HttpError(400, 'Use a personal Twitter username or leave it blank.');
+  if (typeof raw.twitterUsername === 'string' && raw.twitterUsername.trim() && !/^[A-Za-z0-9_]{1,15}$/.test(input.twitterUsername)) throw new HttpError(400, 'Use a Twitter username with 1–15 letters, numbers, or underscores.');
+  if (!/^[A-Za-z0-9_]{1,15}$/.test(input.projectUsername)) throw new HttpError(400, 'Enter your project’s Twitter username: 1–15 letters, numbers, or underscores.');
   for (const field of ['contract', 'wallet'] as const) {
     if (!/^0x[0-9a-fA-F]{40}$/.test(input[field]) || /^0x0{40}$/i.test(input[field])) {
       throw new HttpError(400, `Enter a valid, nonzero EVM ${field} address (0x and 40 hexadecimal characters).`);

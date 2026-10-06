@@ -5,7 +5,7 @@ import { validateProject } from '../lib/projects';
 import type { Project, ProjectInput } from '../lib/submissions';
 
 export const DEFAULT_RELAYS = ['wss://relay.damus.io', 'wss://relay.primal.net', 'wss://nostr.mom'];
-export const DIRECTORY_TAG = 'identitymd-593-projects-v1';
+export const DIRECTORY_TAG = 'identitymd-593-community-hackathon-v2';
 const SCHEMA = 'identitymd-project-v1';
 const TIMEOUT = 10_000;
 const PAGE_SIZE = 250;
@@ -38,7 +38,7 @@ export function normalizeInput(input: ProjectInput): ProjectInput {
 
 export function createProjectEvent(input: ProjectInput, directoryTag = DIRECTORY_TAG): PublicEvent {
   const normalized = normalizeInput(input);
-  if (Object.keys(validateProject(normalized)).length) throw new Error('Check all five project details before publishing.');
+  if (Object.keys(validateProject(input)).length) throw new Error('Check the required project details before publishing.');
   // A one-use transport key, never a wallet, account credential or shared secret.
   const key = schnorr.utils.randomPrivateKey();
   const event = {
@@ -170,11 +170,12 @@ let pending: { content: string; directoryTag: string; event: PublicEvent } | und
 
 export async function publishPublicProject(input: ProjectInput, urls = DEFAULT_RELAYS, directoryTag = DIRECTORY_TAG): Promise<Project> {
   const relays = relayUrls(urls);
+  if (Object.keys(validateProject(input)).length) throw new Error('Check the required project details before publishing.');
   const normalized = normalizeInput(input);
   const content = JSON.stringify(normalized);
   // Retry the exact signed event after an uncertain network result, never a new duplicate.
   const event = pending?.content === content && pending.directoryTag === directoryTag
-    ? pending.event : createProjectEvent(normalized, directoryTag);
+    ? pending.event : createProjectEvent(input, directoryTag);
   pending = { content, directoryTag, event };
   const existing = await readPublicProjects(relays, directoryTag);
   const duplicate = existing.find(project => project.contract.toLowerCase() === normalized.contract);

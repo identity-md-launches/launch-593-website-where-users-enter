@@ -16,7 +16,7 @@ test('all five input fields are normalized and unrelated properties are discarde
 });
 
 test('invalid and zero addresses, invalid username, and short or oversized descriptions are rejected', () => {
-  for (const bad of [{ twitterUsername: '' }, { twitterUsername: 'not a handle' }, { twitterUsername: 'x'.repeat(16) }, { contract: 'wrong' }, { wallet: `0x${'0'.repeat(40)}` }, { projectUsername: '<script>' }, { description: 'short' }, { description: 'x'.repeat(1001) }]) {
+  for (const bad of [{ twitterUsername: '@' }, { projectUsername: '' }, { projectUsername: 'invalid-handle' }, { projectUsername: 'x'.repeat(16) }, { twitterUsername: 'not a handle' }, { twitterUsername: 'x'.repeat(16) }, { contract: 'wrong' }, { wallet: `0x${'0'.repeat(40)}` }, { projectUsername: '<script>' }, { description: 'short' }, { description: 'x'.repeat(1001) }]) {
     assert.throws(() => validateInput({ ...input, ...bad }), (error) => error instanceof HttpError && error.status === 400);
   }
 });
@@ -33,6 +33,16 @@ test('invalid Twitter input never reaches persistence', async () => {
   const response = await handler({ insert: async () => { inserts++; } })(request({ ...input, twitterUsername: 'invalid/handle' }));
   assert.equal(response.status, 400);
   assert.equal(inserts, 0);
+});
+
+test('blank or omitted personal Twitter persists without relaxing required project Twitter', async () => {
+  for (const twitterUsername of ['', '   ', undefined]) {
+    const response = await handler()(request({ ...input, twitterUsername }));
+    assert.equal(response.status, 201);
+    assert.equal((await response.json()).twitterUsername, '');
+  }
+  const response = await handler()(request({ ...input, twitterUsername: '', projectUsername: '' }));
+  assert.equal(response.status, 400);
 });
 
 test('foreign origin, wrong content type, malformed JSON and oversized stream are rejected', async () => {

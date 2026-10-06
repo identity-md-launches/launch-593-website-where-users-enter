@@ -68,7 +68,7 @@ describe('public event integrity', () => {
     expect(decodeProject({ ...event, tags: [...event.tags, ['expiration', '1']] })).toBeNull();
     expect(decodeProject({ ...event, tags: [null] })).toBeNull();
     expect(decodeProject(null)).toBeNull();
-    expect(() => createProjectEvent({ ...input, wallet: 'not-an-address' })).toThrow('Check all five');
+    expect(() => createProjectEvent({ ...input, wallet: 'not-an-address' })).toThrow('Check the required');
   });
 
   it('deduplicates repeated contracts deterministically without treating claims as verified ownership', () => {
@@ -79,6 +79,25 @@ describe('public event integrity', () => {
 });
 
 describe('shared public transport', () => {
+  it('rejects a malformed supplied personal handle before any public write', async () => {
+    // Even a retry matching a previous normalized payload must validate the supplied value.
+    await publishPublicProject({ ...input, twitterUsername: '' });
+    messages.length = 0;
+    await expect(publishPublicProject({ ...input, twitterUsername: '@' })).rejects.toThrow('Check the required');
+    expect(messages.filter(row => row.message[0] === 'EVENT')).toHaveLength(0);
+  });
+
+  it('starts the new directory empty despite old projects and reads new submissions without personal Twitter', async () => {
+    const legacy = createProjectEvent(input, 'identitymd-593-projects-v1');
+    for (const records of storage.values()) records.set(legacy.id, legacy);
+    expect(DIRECTORY_TAG).toBe('identitymd-593-community-hackathon-v2');
+    expect(await readPublicProjects()).toEqual([]);
+    const published = await publishPublicProject({ ...input, twitterUsername: '' });
+    expect(published.twitterUsername).toBe('');
+    expect(await readPublicProjects()).toEqual([published]);
+    expect((await readPublicProjects(DEFAULT_RELAYS, 'identitymd-593-projects-v1'))[0].id).toBe(legacy.id);
+  });
+
   it('uses real shared transport with blank Supabase config and reads from a new connection', async () => {
     const published = await submitProject({ url: '', anonKey: '' }, input);
     expect(await fetchProjects({ url: '', anonKey: '' })).toEqual([published]);
