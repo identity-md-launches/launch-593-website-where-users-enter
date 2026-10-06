@@ -1,6 +1,8 @@
 # Identity MD community hackathon
 
-The existing green Pepe Collective site now starts with a fresh public project directory. Personal Twitter is optional; project Twitter, contract, description, wallet and public-sharing consent remain required. The wallet hint explains where hackathon winner funds will be sent. Canonical metadata, Open Graph metadata and the footer link use **https://community.hackathon.sites.imd.fun/**.
+The green Pepe Collective site provides the community hackathon's public project directory. This update removes `community.hackathon.sites.imd.fun` from the bottom of the page. The footer retains its brand and information buttons. Canonical and Open Graph metadata still use **https://community.hackathon.sites.imd.fun/**.
+
+Personal Twitter is optional; project Twitter, contract, description, wallet and public-sharing consent remain required. The wallet hint explains where hackathon winner funds will be sent.
 
 The ready-to-publish static export is in `dist/`, alongside the source and unchanged `package-lock.json`. No sign-in, wallet connection or blockchain transaction is needed.
 
@@ -65,15 +67,16 @@ Do not submit dependency folders, package caches, registry mirrors, archives or 
 
 ## Actual validation
 
-This release was checked on 2026-10-06 with Node 24.21.0 and npm 11.6.2:
+This footer update was checked on 2026-10-06 with Node 24.21.0 and npm 11.19.0:
 
 | Command | Actual result |
 | --- | --- |
 | `npm run typecheck` | Passed. |
 | `npm test` | 29 frontend tests passed: optional personal Twitter, required remaining fields, consent, errors, retries, details, search/sort, directory reset, signatures and relay behavior. |
-| `npm run test:backend` | 10 handler/transport tests passed, including omitted personal Twitter and mandatory project Twitter. |
 | `npm run build` | Passed; the final complete export is included in `dist/`. |
 
-Dependencies were installed with the unchanged manifest/lockfile in `/tmp/imd-community-build`; these commands ran against copied final sources there to avoid touching repository `node_modules/`. npm was bootstrapped outside the repository. The produced export was copied back and compared byte-for-byte. Chromium 141 browser checks passed against `/preview/`: eight directory widths (320–1440px), optional-field submission via mocked relays, a fresh reader, keyboard navigation, details/copy and failed-refresh recovery. A read-only check of the real relays returned an empty directory. No live test submissions were published. axe-core reported no automatic violations in the three checked states; some contrast checks remained incomplete. Vite's existing notice about the separate non-module `config.js` is expected; that runtime configuration must remain a separate file.
+Dependencies were installed with `npm ci --prefix /tmp/imd-footer-build-6hqlz_8p --cache /tmp/imd-footer-npm-cache --no-audit --no-fund` using copies of the unchanged manifest and lockfile. The commands above ran against copied final sources there, without creating repository `node_modules/`; the resulting export was copied back to `dist/`. Vite reported its existing non-module `config.js` notice; this runtime configuration remains a separate file and loaded successfully in the browser.
 
-Current browser results, the six-domain Better Interface review, corrected findings, delivery-size check and concrete limitations are in [docs/community/validation.md](docs/community/validation.md), with raw browser evidence in [docs/community/browser-results.json](docs/community/browser-results.json). [DESIGN.md](DESIGN.md) records the implemented design. The older `docs/` reports and screenshots describe previous releases, not this validation. Attribution remains in [licenses/NOTICE.md](licenses/NOTICE.md).
+Chromium 155 checked the production export at `/preview/`, with no horizontal overflow at 320, 390, 768 and 1440 CSS pixels. Both footer dialogs passed keyboard activation, Escape and focus-return checks. Form validation, a submission with blank personal Twitter, refresh/reload, details, search/reset, sorting and mobile navigation passed using intercepted relay fixtures. No live test submission was published. The successful fixture run had no console exceptions or failed HTTP resources. Screenshots were inspected at desktop, tablet and mobile sizes.
+
+This check did not repeat backend tests, axe-core, screen-reader, native browser zoom or physical-device testing. Live relay persistence and deployed hosting were not verified. The preview connection workaround, measured footer contrast, six-domain Better Interface review and delivery-size check are recorded in [docs/footer/validation.md](docs/footer/validation.md), with [browser results](docs/footer/browser-results.json). [DESIGN.md](DESIGN.md) records the final design. Other `docs/` reports and screenshots describe earlier releases. Attribution remains in [licenses/NOTICE.md](licenses/NOTICE.md).

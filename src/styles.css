@@ -184,8 +184,6 @@ input[type=search]::-webkit-search-cancel-button { display: none; }
 .site-footer > div > span { font-size: 10px; color: var(--text-secondary); }
 .site-footer nav { display: flex; align-items: center; gap: 22px; }
 .site-footer nav button { font-size: 10px; }
-.site-footer > p { font-size: 10px; color: var(--text-secondary); display: flex; gap: 7px; align-items: center; }
-.site-footer > p > svg { color: var(--accent-text); }
 .icon-button { border: 0; background: transparent; border-radius: 6px; width: 40px; height: 40px; padding: 9px; display: inline-grid; place-items: center; }
 .modal { width: min(540px, calc(100% - 32px)); max-height: min(90dvh, 900px); border: 1px solid var(--border-subtle); border-radius: 20px; background: var(--surface-card); color: var(--text-primary); padding: 0; box-shadow: 0 12px 50px #11291d26; overscroll-behavior: contain; }
 .modal::backdrop { background: #0b201c9e; backdrop-filter: blur(4px); }
@@ -380,7 +378,6 @@ input[type=search]::-webkit-search-cancel-button { display: none; }
   .site-footer { flex-direction: column; gap: 8px; margin-block: 25px 16px; }
   .site-footer nav { gap: 26px; }
   .site-footer nav button { font-size: 11px; min-height: 40px; }
-  .site-footer > p { font-size: 10px; }
   .modal-content { padding: 18px 20px 24px; }
   .modal-heading { gap: 8px; }
   .modal-heading h2 { font-size: 19px; }

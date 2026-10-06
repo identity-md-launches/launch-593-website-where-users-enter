@@ -4,13 +4,13 @@
 
 This implementation presents the community-organised Identity MD hackathon within the existing Pepe Collective website: a public directory for people building with AI, with a public submission form that opens without signing in. Its headline is “Small pepes. Big intelligence.” The hero adds the requested description, “Identity MD hackathon, organised by the community. Judged by IMD ai agents”. The original “pepes armed with AI working together” illustration, forest-green hero, lime actions, warm off-white page, white cards and green accents establish its visual character.
 
-Only real submissions populate the directory. This release starts a new directory using `identitymd-593-community-hackathon-v2`, so earlier entries are absent while new entries remain visible after reload. The default export reads and publishes through shared public Nostr relays without account credentials; an actually empty network directory offers the first-submission state. All projects is the sole directory view, alongside search, sorting and a Refresh projects action. Twitter handles are self-reported.
+Only real submissions populate the directory, using the existing `identitymd-593-community-hackathon-v2` namespace. The default export reads and publishes through shared public Nostr relays without account credentials; an actually empty network directory offers the first-submission state. All projects is the sole directory view, alongside search, sorting and a Refresh projects action. Twitter handles are self-reported.
 
 The page has navigation, a split hero, three principles, a searchable directory, an invitation banner and a footer. That composition belongs to this landing page; reusable choices are its content alignment, typography, surface colors, buttons, fields, cards and native dialogs. There is one implemented theme and no theme switch.
 
-The footer links to `https://community.hackathon.sites.imd.fun/`; `index.html` uses the same canonical and Open Graph URL, with a hackathon title and description. These source values identify the intended public address; hosting configuration and deployment status are documented separately in the README and validation record.
+The footer contains the brand/home link and two information-dialog buttons. The public hostname is no longer displayed at the bottom. `index.html` retains `https://community.hackathon.sites.imd.fun/` as its canonical and Open Graph URL, with a hackathon title and description. Hosting configuration and deployment status are documented separately in the README and validation record.
 
-The source of truth is [src/styles.css](src/styles.css), with page patterns in [src/App.tsx](src/App.tsx) and shared components in [src/components/](src/components/). This document describes source declarations and behavior. Actual build, interaction and rendered-check results, including coverage limitations, are recorded in [docs/community/validation.md](docs/community/validation.md).
+The source of truth is [src/styles.css](src/styles.css), with page patterns in [src/App.tsx](src/App.tsx) and shared components in [src/components/](src/components/). This document describes source declarations and behavior. Current build, interaction and rendered-check results, including coverage limitations, are recorded in [docs/footer/validation.md](docs/footer/validation.md).
 
 ## Colors
 
@@ -41,7 +41,7 @@ Colors use hexadecimal CSS custom properties in `src/styles.css:4`. Keep the exi
 
 Focus uses a 3px solid outline with 4px offset. The hero uses lime focus over forest; the invitation banner overrides its focus back to `--focus-ring` on its light background. Forced-colors mode uses system `Highlight` and `ButtonText`. Errors pair color with written guidance and `aria-invalid`; the All projects control also exposes `aria-pressed`.
 
-The wallet hint measured 5.84:1 against the opaque white dialog; the optional-field label measured 4.82:1; errors measured 6.88:1 against white and 6.25:1 against the error surface; the publish action measured 11.70:1 against its lime fill. These are computed from browser styles for identified opaque pairs, not a claim about every image/overlay. See validation for coverage and limitations.
+The footer's secondary text (`#5c685d`) measured 5.48:1 against the opaque page (`#f7f8f4`); its focused button outline (`#47713c`) measured 5.33:1 against that background. These values were calculated from browser-computed styles during the footer review. Other color pairs and overlays were not remeasured; the earlier form measurements remain in [the previous review](docs/community/validation.md).
 
 ## Typography
 
@@ -85,7 +85,7 @@ The directory separates its heading, All projects/search toolbar, results/refres
 
 Dialogs use `width: min(540px, calc(100% - 32px))`; the submission form's `.modal-wide` uses 660px instead. `max-height: min(90dvh, 900px)` permits vertical scrolling. Content padding is 24px 28px 28px, becoming 18px 20px 24px at 42rem. The publish action fills its row on mobile. Full addresses wrap in their detail rows.
 
-Chromium checks found no page overflow at 320, 390, 672, 673, 768, 880, 1024 and 1440 CSS pixels, and no form overflow at 320 and 768px or detail overflow at 390px. Screenshots cover mobile, tablet, desktop and form validation. This does not cover every possible width or physical-device behavior; see validation for limitations.
+The footer keeps two groups in a row with `justify-content: space-between` and a 24px gap. At 42rem and below they stack centrally with an 8px gap; the tagline remains hidden at 70rem and below. The removed hostname has no placeholder or reserved column. Chromium checks found no page overflow at 320, 390, 768 and 1440 CSS pixels, and no horizontal form overflow at 320px. Screenshots cover mobile, tablet, desktop and form validation. Other intermediate widths and physical-device behavior were not checked in this update.
 
 ## Elevation & Depth
 
@@ -105,7 +105,7 @@ Keep fields recognizable through their borders. Preserve the existing panel/card
 | --- | --- |
 | `.button`, `.button-primary`, `.button-secondary` in `src/styles.css` | Inline-flex actions, generally at least 46px high; lime primary and bordered light secondary variants. Hero action is at least 48px. Native disabled actions use opacity .65 and a wait cursor. |
 | Header/navigation in `src/App.tsx` | Hash links navigate to the page/directory; buttons open information dialogs. Mobile toggle exposes `aria-expanded` and an open/close name. `openInfo` focuses `menuToggle` before collapsing the mobile menu, so dialog cleanup returns focus to the persistent menu button. No authentication or account controls are displayed. |
-| Footer in `src/App.tsx` | Retains the brand, “Small pepes. Big things.” tagline and information-dialog buttons. The underlined `community.hackathon.sites.imd.fun` anchor uses the public HTTPS address and opens in the same tab; footer groups stack at 42rem. |
+| Footer in `src/App.tsx` | Brand link returns to the page top. “How it works” and “Public by design” open native dialogs and retain keyboard focus on dismissal. The desktop tagline is “Small pepes. Big things.” The two groups stack at 42rem; no public-hostname text or anchor is rendered. |
 | `ProjectCard` in `src/App.tsx` | Local page pattern, not an exported library component. Props `project`, `index`, `open`; title opens full details. A Public project badge and the personal Twitter handle identify each record; when personal Twitter is omitted, the card shows the required project Twitter handle. There are no inferred categories or verification badges. |
 | `ProjectDetail` in `src/App.tsx` | Local full-record pattern: description, optional personal Twitter, required project Twitter, contract and wallet. An omitted personal Twitter is shown as “Not provided” without an empty link. Project Twitter always has a link. Copy controls show a check and announce feedback; account links identify new-tab behavior. Copy explicitly states that accounts and addresses are not verified. |
 | Directory toolbar in `src/App.tsx` | The sole All projects button uses `aria-pressed="true"` and clears the search; labeled search supports clearing; native select changes newest/alphabetical sorting. Counts use `role="status"`. Refresh projects is a bordered 40px-minimum-height action, disabled while loading. Records refresh on window focus and every 60 seconds while the page is visible; overlapping requests are suppressed. Failed refresh preserves loaded cards beneath an actionable warning. Empty search offers Clear search; load failure offers Try again; no-data state offers submission. |

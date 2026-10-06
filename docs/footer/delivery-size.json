@@ -1,0 +1,14 @@
+{
+  "limit_bytes": 8388608,
+  "tracked_and_new_file_bytes": 3651052,
+  "file_count": 93,
+  "dist_bytes": 540239,
+  "dist_matches_final_build": true,
+  "source_matches_build_input": true,
+  "relative_asset_references_resolve": true,
+  "footer_hostname_absent_from_app_and_bundle": true,
+  "protected_files_unchanged": true,
+  "submodules": 0,
+  "new_dependency_or_cache_files": 0,
+  "note": "Uncompressed final file payload, including existing historical documentation; Git metadata and removed input/scratch files excluded. No Git metadata was written."
+}

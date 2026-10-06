@@ -1,0 +1,70 @@
+{
+  "browser": "155.0.8059.12",
+  "preview": "/preview/",
+  "checks": [
+    "URL absent from rendered footer; home link and both information buttons remain.",
+    "Keyboard Tab/Enter activates both footer dialogs; Escape dismisses and restores each trigger.",
+    "Submission opens; empty submit focuses required project handle, marks four required fields plus consent, leaves personal Twitter optional.",
+    "Fixture-only public submission with blank personal Twitter succeeds and survives refresh/reload; details show one project contact; search/reset and sorting work; mobile menu hash navigation and footer home link work. No live submission."
+  ],
+  "viewports": [
+    {
+      "width": 1440,
+      "scroll": 1440,
+      "footerDirection": "row",
+      "footerText": "pepe collective.\nSmall pepes. Big things.\nHow it works\nPublic by design"
+    },
+    {
+      "width": 768,
+      "scroll": 768,
+      "footerDirection": "row",
+      "footerText": "pepe collective.\nHow it works\nPublic by design"
+    },
+    {
+      "width": 390,
+      "scroll": 390,
+      "footerDirection": "column",
+      "footerText": "pepe collective.\nHow it works\nPublic by design"
+    },
+    {
+      "width": 320,
+      "scroll": 320,
+      "footerDirection": "column",
+      "footerText": "pepe collective.\nHow it works\nPublic by design"
+    }
+  ],
+  "errors": [],
+  "failedResources": [],
+  "fonts": [
+    {
+      "family": "Inter",
+      "status": "loaded"
+    },
+    {
+      "family": "Space Grotesk",
+      "status": "loaded"
+    }
+  ],
+  "focus": {
+    "color": "rgb(71, 113, 60)",
+    "width": "3px",
+    "style": "solid"
+  },
+  "contrast": {
+    "text": "rgb(92, 104, 93)",
+    "background": "rgb(247, 248, 244)",
+    "textRatio": 5.48,
+    "focus": "rgb(71, 113, 60)",
+    "focusRatio": 5.33
+  },
+  "form": {
+    "width": 320,
+    "scroll": 280,
+    "client": 280,
+    "top": 45,
+    "bottom": 855,
+    "height": 900
+  },
+  "reducedMotion": "0s",
+  "completed": "2026-10-06T13:10:51.924Z"
+}

@@ -111,7 +111,7 @@ export default function App() {
 
       <section className="join-banner"><span className="join-icon"><FrogMark /><Sparkles size={18} /></span><div><h2>There’s room for one more frog.</h2><p>Your idea belongs here. Let’s see what you’re building.</p></div><button className="button button-primary" onClick={openSubmit}>Join the collective<ArrowUpRight size={17} /></button></section>
     </main>
-    <footer className="site-footer container"><div><a className="footer-brand" href="#"><FrogMark />pepe collective.</a><span>Small pepes. Big things.</span></div><nav aria-label="Footer navigation"><button onClick={() => setInfo('how')}>How it works</button><button onClick={() => setInfo('public')}>Public by design<ArrowUpRight size={13} /></button></nav><p><a href="https://community.hackathon.sites.imd.fun/">community.hackathon.sites.imd.fun</a></p></footer>
+    <footer className="site-footer container"><div><a className="footer-brand" href="#"><FrogMark />pepe collective.</a><span>Small pepes. Big things.</span></div><nav aria-label="Footer navigation"><button onClick={() => setInfo('how')}>How it works</button><button onClick={() => setInfo('public')}>Public by design<ArrowUpRight size={13} /></button></nav></footer>
 
     <div className="sr-only" role="status">{notice}</div>
     {notice && <div className="toast"><CheckCircle2 size={17} /><span>{notice}</span><button className="icon-button" aria-label="Dismiss notification" onClick={() => setNotice('')}><X size={16} /></button></div>}
