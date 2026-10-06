@@ -1,10 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createProjectEvent, decodeProject, DEFAULT_RELAYS, DIRECTORY_TAG, publishPublicProject, readPublicProjects, uniqueProjects, type PublicEvent } from '../src/services/public-directory';
 import { fetchProjects, submitProject, type ProjectInput } from '../src/services/directory';
+import { schnorr } from '@noble/curves/secp256k1';
+import { sha256 } from '@noble/hashes/sha256';
+import { bytesToHex } from '@noble/hashes/utils';
 
 const input: ProjectInput = {
   twitterUsername: '@pond_builder', projectUsername: 'open_pond',
-  contract: `0x${'AB'.repeat(20)}`, wallet: `0x${'cd'.repeat(20)}`,
+  contract: `0x${'AB'.repeat(20)}`,
   description: 'Open tools for people building useful projects together.',
 };
 
@@ -59,7 +62,20 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
 
 describe('public event integrity', () => {
-  it('signs all five fields and rejects tampering, foreign namespaces, expiration and invalid fields', () => {
+  it('omits wallet data from new events and still reads signed legacy records without exposing their wallet', () => {
+    const legacyInput = { ...input, wallet: `0x${'cd'.repeat(20)}` };
+    const event = createProjectEvent(legacyInput);
+    expect(JSON.parse(event.content)).not.toHaveProperty('wallet');
+    const key = schnorr.utils.randomPrivateKey();
+    const legacy = { ...event, pubkey: bytesToHex(schnorr.getPublicKey(key)), content: JSON.stringify({ ...JSON.parse(event.content), wallet: legacyInput.wallet }) };
+    legacy.id = bytesToHex(sha256(new TextEncoder().encode(JSON.stringify([0, legacy.pubkey, legacy.created_at, legacy.kind, legacy.tags, legacy.content]))));
+    legacy.sig = bytesToHex(schnorr.sign(legacy.id, key));
+    const decoded = decodeProject(legacy);
+    expect(decoded).toMatchObject({ projectUsername: input.projectUsername, contract: input.contract.toLowerCase() });
+    expect(decoded).not.toHaveProperty('wallet');
+  });
+
+  it('signs the four remaining fields and rejects tampering, foreign namespaces, expiration and invalid fields', () => {
     const event = createProjectEvent(input);
     expect(decodeProject(event)).toMatchObject({ ...input, twitterUsername: 'pond_builder', contract: input.contract.toLowerCase(), id: event.id });
     expect(decodeProject({ ...event, content: event.content.replace('open_pond', 'forged') })).toBeNull();
@@ -68,7 +84,7 @@ describe('public event integrity', () => {
     expect(decodeProject({ ...event, tags: [...event.tags, ['expiration', '1']] })).toBeNull();
     expect(decodeProject({ ...event, tags: [null] })).toBeNull();
     expect(decodeProject(null)).toBeNull();
-    expect(() => createProjectEvent({ ...input, wallet: 'not-an-address' })).toThrow('Check the required');
+    expect(() => createProjectEvent({ ...input, contract: 'not-an-address' })).toThrow('Check the required');
   });
 
   it('deduplicates repeated contracts deterministically without treating claims as verified ownership', () => {

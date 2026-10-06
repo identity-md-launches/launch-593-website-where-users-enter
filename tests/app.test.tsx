@@ -8,8 +8,8 @@ const mocks = vi.hoisted(() => ({ fetch: vi.fn(), submit: vi.fn() }));
 vi.mock('../src/config', () => ({ usesPublicNetwork: true, backendConfig: { url: '', anonKey: '' } }));
 vi.mock('../src/services/directory', () => ({ fetchProjects: mocks.fetch, submitProject: mocks.submit }));
 const projects: Project[] = [
-  { id: '1', projectUsername: 'zebra_tools', twitterUsername: 'builder_one', description: 'Tools for an open community of builders.', contract: `0x${'ab'.repeat(20)}`, wallet: `0x${'cd'.repeat(20)}`, createdAt: '2026-10-06T12:00:00Z' },
-  { id: '2', projectUsername: 'alpha_project', twitterUsername: 'builder_two', description: 'A place for independent project research.', contract: `0x${'ef'.repeat(20)}`, wallet: `0x${'ab'.repeat(20)}`, createdAt: '2026-10-05T12:00:00Z' },
+  { id: '1', projectUsername: 'zebra_tools', twitterUsername: 'builder_one', description: 'Tools for an open community of builders.', contract: `0x${'ab'.repeat(20)}`, createdAt: '2026-10-06T12:00:00Z' },
+  { id: '2', projectUsername: 'alpha_project', twitterUsername: 'builder_two', description: 'A place for independent project research.', contract: `0x${'ef'.repeat(20)}`, createdAt: '2026-10-05T12:00:00Z' },
 ];
 
 beforeEach(() => { vi.clearAllMocks(); mocks.fetch.mockReset().mockResolvedValue(projects); });
@@ -71,7 +71,8 @@ describe('public project directory', () => {
     const trigger = screen.getByRole('button', { name: 'zebra_tools' }); await user.click(trigger);
     const dialog = screen.getByRole('dialog', { name: 'zebra_tools' });
     expect(within(dialog).getByText(projects[0].contract)).toBeVisible();
-    expect(within(dialog).getByText(projects[0].wallet)).toBeVisible();
+    expect(within(dialog).queryByText('Wallet address')).not.toBeInTheDocument();
+    expect(within(dialog).queryByRole('button', { name: /Copy wallet/ })).not.toBeInTheDocument();
     expect(within(dialog).getByRole('link', { name: /@builder_one/ })).toHaveAttribute('href', 'https://x.com/builder_one');
     expect(within(dialog).getByText(/are not verified/)).toBeVisible();
     await user.click(within(dialog).getByRole('button', { name: 'Copy contract address' }));
@@ -108,11 +109,11 @@ describe('public project directory', () => {
     await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Close dialog' })); expect(toggle).toHaveFocus();
   });
 
-  it('opens all five editable fields directly from the submit action', async () => {
+  it('opens all four editable fields directly from the submit action', async () => {
     const user = userEvent.setup(); render(<App />);
     await user.click(screen.getAllByRole('button', { name: 'Submit your project' })[0]);
     const dialog = screen.getByRole('dialog', { name: 'Share your project' });
-    expect(within(dialog).getAllByRole('textbox')).toHaveLength(5);
+    expect(within(dialog).getAllByRole('textbox')).toHaveLength(4);
     expect(within(dialog).getByRole('textbox', { name: /^Personal Twitter account/ })).not.toHaveAttribute('readonly');
     expect(within(dialog).queryByRole('button', { name: /Twitter/ })).not.toBeInTheDocument();
     expect(within(dialog).getByText(/Shared on a public network/)).toBeVisible();

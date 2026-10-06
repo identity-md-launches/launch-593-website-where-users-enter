@@ -1,10 +1,12 @@
 # Identity MD community hackathon
 
-The green Pepe Collective site provides the community hackathon's public project directory. This update removes `community.hackathon.sites.imd.fun` from the bottom of the page. The footer retains its brand and information buttons. Canonical and Open Graph metadata still use **https://community.hackathon.sites.imd.fun/**.
+The existing green Pepe Collective website provides a public project directory. Wallet address collection has been removed from the form, validation, submission payloads and project details. Its replacement text is:
 
-Personal Twitter is optional; project Twitter, contract, description, wallet and public-sharing consent remain required. The wallet hint explains where hackathon winner funds will be sent.
+> Rewards will be sent directly to the winners deployer addresses
 
-The ready-to-publish static export is in `dist/`, alongside the source and unchanged `package-lock.json`. No sign-in, wallet connection or blockchain transaction is needed.
+Personal Twitter remains optional. Project Twitter, EVM contract address, project description and public-sharing consent remain required. The site displays payout information; it does not discover deployer addresses or transfer rewards.
+
+The complete static export is in `dist/`, alongside the source and unchanged `package-lock.json`. No sign-in, wallet connection or blockchain transaction is needed.
 
 ## Install, preview and rebuild
 
@@ -25,58 +27,48 @@ npm run build
 npm run preview
 ```
 
-Vite prints the preview address. For a preview without installing dependencies, run `python3 -m http.server 8080 --directory dist` and open `http://localhost:8080/`. Use HTTP on localhost, not a `file:` URL. Production hosting needs HTTPS for browser cryptography and secure WebSockets.
+Vite prints the preview address. To preview the included export without dependencies, run `python3 -m http.server 8080 --directory dist` and open `http://localhost:8080/`. Use HTTP on localhost rather than `file:`. Production hosting needs HTTPS for browser cryptography and secure WebSockets.
 
-The package manifest, lockfiles and build configuration are preserved. Local fonts, artwork and required third-party licenses are included. Unused authentication/wallet dependencies remain in the protected manifest but are not imported by the site.
+Build configuration, manifests and lockfiles are unchanged. Unused authentication/wallet dependencies remain in the protected manifest but are not imported by the site. For this assignment, dependencies were installed outside the repository; see the validation record for the exact build location and commands.
 
-## Fresh directory and submission behavior
+## Submission and compatibility
 
-`public/config.js` and the service's default both use the new directory tag:
+`public/config.js` selects the existing public Nostr provider with directory tag `identitymd-593-community-hackathon-v2` and relays `wss://relay.damus.io`, `wss://relay.primal.net`, and `wss://nostr.mom`. Keep this tag across rebuilds so current submissions stay discoverable. The older `identitymd-593-projects-v1` namespace remains excluded.
 
-```js
-window.PEPE_CONFIG = {
-  supabaseUrl: '',
-  supabaseAnonKey: '',
-  relayUrls: ['wss://relay.damus.io', 'wss://relay.primal.net', 'wss://nostr.mom'],
-  directoryTag: 'identitymd-593-community-hackathon-v2',
-};
-```
+- Personal Twitter can be blank; supplied handles and the required project Twitter accept 1–15 letters, numbers or underscores. A leading `@` is normalized.
+- The contract must be a nonzero EVM address; descriptions contain 20–1,000 characters. Twitter and contract ownership are self-reported.
+- New records contain the four remaining fields, with personal Twitter stored as `''` when omitted. Signed legacy records that contain a wallet remain readable; the frontend discards that field and no longer displays it. Public copies of earlier records are not erased.
+- Publishing requires consent, acknowledgments and fresh readback from at least two relays. A one-use signing key is discarded after signing and is unrelated to any wallet. There is no localStorage fallback.
+- Search, sorting, full project details, contract copying, refresh and retry remain available. Failed refresh preserves previously loaded projects. A partially saved submission may be public before confirmation; retry reuses its signed event.
 
-The earlier `identitymd-593-projects-v1` records are excluded from reads and duplicate checks in this fresh directory. New submissions appear normally for all visitors. This clears the website's list; it does not erase copies already held by independent public relays. Keep the new tag unchanged across rebuilds so new projects remain discoverable. Do not override it with the old tag when publishing.
+Relay availability and retention depend on independent services. Editing, moderation, deletion and ownership verification are not implemented. Duplicate handling is not proof of ownership or transactional uniqueness.
 
-- Personal Twitter may be empty or whitespace. If provided, it must be a valid 1–15-character handle.
-- The existing `projectUsername` property now represents **Project Twitter account**. It is required and accepts 1–15 letters, numbers or underscores, with an optional leading `@`. It is linked to the project's X profile. Ownership is self-reported.
-- A nonzero EVM contract address, a 20–1,000-character description, and a nonzero public EVM wallet address remain required. The wallet receives hackathon winner funds; this site does not send funds.
-- All submitted details become public only after consent and Publish project. Personal Twitter is stored as `''` when absent; details show “Not provided” without a broken link, and cards fall back to the project handle.
+The [optional Supabase backend](backend/README.md) also omits wallet fields. Before enabling it, apply `202610060003_remove_wallet_requirement.sql` and deploy the updated function: the previous database schema and endpoint require a wallet. The migration preserves historical values. Supabase is not configured in the included export; no hosted migration or deployment was performed.
 
-The existing Nostr transport signs the payload using a one-use random transport key, discarded after signing. This key is unrelated to a wallet or account. Success requires acknowledgment **and fresh readback from at least two relays**. Reads validate signatures and fields, merge records, and exclude other directory tags. There is no localStorage fallback. Search, sorting, full details, address copying, refresh and retry remain available. Refresh failure preserves previously loaded records.
+## Publish
 
-Public relay availability and retention are outside this website's control. Editing, moderation, deletion and account verification are not implemented. Duplicate-contract handling is a display/transport rule, not proof of ownership or transactional uniqueness. A partially saved record can be public even if confirmation fails; retry reuses its signed event.
+Upload **all contents of `dist/`**: `index.html`, `assets/`, `config.js`, `fonts/`, `images/`, `licenses/` and `favicon.svg`. The publisher serves this export without rebuilding. Include source, the existing manifest/lockfile and export in the submission.
 
-The optional managed provider is documented in [backend/README.md](backend/README.md). Its validator and new migration also accept omitted personal Twitter while enforcing project Twitter. Supabase is not configured in the shipped export; its existing records are not reset. No database migration or hosted service was executed here.
+Vite retains `base: './'`; production assets use relative URLs. Hash navigation and dialogs require no route rewrites. Use a trailing slash at a gateway subpath. Rebuild after changing source or `public/config.js`, then publish the complete export together.
 
-## Publish and hostname handoff
+The supplied hosting record identifies `pepe-collective-small-frogs-big.site.identitymd.eth` as the existing hosted name. Canonical/Open Graph metadata still uses `https://community.hackathon.sites.imd.fun/`; that hostname is not displayed in the footer. Metadata does not change DNS or hosting. This assignment does not claim deployment, a hostname change or an on-chain action.
 
-Upload **all contents of `dist/`** to the static publisher: `index.html`, `assets/`, `config.js`, `fonts/`, `images/`, `licenses/` and `favicon.svg`. The publisher serves these export files directly and does not rebuild. Source and the original lockfile accompany the export.
+Keep dependency folders, caches, registry mirrors, package archives and submodules out of the submission, including nested paths. The delivery-size report accounts for all source, export and documentation files against the 8 MiB limit. No ignore file was changed.
 
-Vite retains `base: './'`; built assets use relative URLs. The site uses hash navigation and native dialogs, so it needs no server route rewrites. Use a trailing slash on gateway subpaths. Rebuild after editing `public/config.js` and publish the whole export together.
+## Actual validation — 2026-10-06
 
-**Publisher action still required:** map `community.hackathon.sites.imd.fun` to this export, replacing the former `pepe-collective-small-frogs-big.sites.imd.fun` site address. The supplied project notes say normal publishing keeps the existing hosted name, so metadata alone cannot rename it. This workspace provides no hosting/DNS administration capability. If the platform supports it, redirect the former hostname to the new one, then verify HTTPS, assets, project reads and submission on the final address. No hosted rename or deployment is claimed by this delivery.
-
-Do not submit dependency folders, package caches, registry mirrors, archives or submodules. Do not change the protected build files. The complete submission must remain below 8 MiB.
-
-## Actual validation
-
-This footer update was checked on 2026-10-06 with Node 24.21.0 and npm 11.19.0:
+Node 24.21.0, npm 11.19.0. Commands ran against copied final source in `/tmp/imd-rewards-build-rcv5it_o`, installed from the unchanged manifest and lockfile. The resulting export was copied back byte-for-byte.
 
 | Command | Actual result |
 | --- | --- |
 | `npm run typecheck` | Passed. |
-| `npm test` | 29 frontend tests passed: optional personal Twitter, required remaining fields, consent, errors, retries, details, search/sort, directory reset, signatures and relay behavior. |
-| `npm run build` | Passed; the final complete export is included in `dist/`. |
+| `npm test` | 30 frontend tests passed, including wallet-free submission, legacy record compatibility, consent, retry, search, sorting, copying and relay validation. |
+| `npm run test:backend` | 10 handler/HTTP-client tests passed, including omission and discarding of obsolete wallet data from persistence payloads. |
+| `npm run build` | Passed; complete production export included. Vite's existing non-module `config.js` notice remains; the separate runtime script loaded successfully. |
+| `BROWSER_TOOLS_ROOT=/tmp/imd-rewards-browser CHROMIUM_PATH=/root/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome node artifacts/browser-check.mjs` | Passed against the final export at `/preview/`. The retained script is now at `docs/rewards/browser-check.mjs`; only its output directory was changed afterward. |
 
-Dependencies were installed with `npm ci --prefix /tmp/imd-footer-build-6hqlz_8p --cache /tmp/imd-footer-npm-cache --no-audit --no-fund` using copies of the unchanged manifest and lockfile. The commands above ran against copied final sources there, without creating repository `node_modules/`; the resulting export was copied back to `dist/`. Vite reported its existing non-module `config.js` notice; this runtime configuration remains a separate file and loaded successfully in the browser.
+Chromium 153 checked widths from 320 to 1440px, keyboard publication without a wallet, exact reward copy, public consent/errors, success focus, project details, contract copying, search/reset, sorting, fresh-reader/reload, refresh failure/retry and mobile navigation. No horizontal overflow, console errors or failed HTTP resources occurred in the fixture run. Three axe scans reported zero violations, with contrast items needing manual review; selected form contrast pairs were measured separately. Screenshots were inspected, including the mobile reward notice and tablet keyboard focus.
 
-Chromium 155 checked the production export at `/preview/`, with no horizontal overflow at 320, 390, 768 and 1440 CSS pixels. Both footer dialogs passed keyboard activation, Escape and focus-return checks. Form validation, a submission with blank personal Twitter, refresh/reload, details, search/reset, sorting and mobile navigation passed using intercepted relay fixtures. No live test submission was published. The successful fixture run had no console exceptions or failed HTTP resources. Screenshots were inspected at desktop, tablet and mobile sizes.
+Public writes were simulated with intercepted relay fixtures; no live test submission was published. The supplied browser tool also inspected the production form at desktop/mobile sizes and focus return. Native 200% zoom, screen readers, physical devices, other browser engines, live persistence, database migration and Deno-only checks were not performed.
 
-This check did not repeat backend tests, axe-core, screen-reader, native browser zoom or physical-device testing. Live relay persistence and deployed hosting were not verified. The preview connection workaround, measured footer contrast, six-domain Better Interface review and delivery-size check are recorded in [docs/footer/validation.md](docs/footer/validation.md), with [browser results](docs/footer/browser-results.json). [DESIGN.md](DESIGN.md) records the final design. Other `docs/` reports and screenshots describe earlier releases. Attribution remains in [licenses/NOTICE.md](licenses/NOTICE.md).
+The six-domain Better Interface review, findings, commands, screenshots, measured contrast and limitations are recorded in [docs/rewards/validation.md](docs/rewards/validation.md), alongside [browser results](docs/rewards/browser-results.json) and [delivery size](docs/rewards/delivery-size.json). [DESIGN.md](DESIGN.md) describes the final implemented design. Earlier reports under `docs/` describe earlier releases. Guidance attribution remains in [licenses/NOTICE.md](licenses/NOTICE.md).

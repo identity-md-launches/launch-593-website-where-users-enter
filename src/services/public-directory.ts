@@ -32,7 +32,6 @@ export function normalizeInput(input: ProjectInput): ProjectInput {
     projectUsername: input.projectUsername.trim().replace(/^@/, ''),
     contract: input.contract.trim().toLowerCase(),
     description: input.description.trim(),
-    wallet: input.wallet.trim(),
   };
 }
 
@@ -68,7 +67,7 @@ export function decodeProject(value: unknown, directoryTag = DIRECTORY_TAG): Pro
     if (eventId(event) !== event.id || !schnorr.verify(event.sig, event.id, event.pubkey)) return null;
     const content = JSON.parse(event.content) as Record<string, unknown>;
     if (!content || content.schema !== SCHEMA) return null;
-    if (!['twitterUsername', 'projectUsername', 'contract', 'description', 'wallet'].every(key => typeof content[key] === 'string')) return null;
+    if (!['twitterUsername', 'projectUsername', 'contract', 'description'].every(key => typeof content[key] === 'string')) return null;
     const input = normalizeInput(content as unknown as ProjectInput);
     if (Object.keys(validateProject(input)).length) return null;
     return { ...input, id: event.id, createdAt: new Date(event.created_at * 1000).toISOString() };

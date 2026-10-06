@@ -5,7 +5,7 @@ import { submitProject, type Project, type ProjectInput } from '../services/dire
 import { validateProject } from '../lib/projects';
 
 export function Submission({ onPublished, onClose, onBusyChange }: { onPublished: (project: Project) => void; onClose: () => void; onBusyChange?: (busy: boolean) => void }) {
-  const [input, setInput] = useState<ProjectInput>({ twitterUsername: '', projectUsername: '', contract: '', description: '', wallet: '' });
+  const [input, setInput] = useState<ProjectInput>({ twitterUsername: '', projectUsername: '', contract: '', description: '' });
   const [errors, setErrors] = useState<Partial<Record<keyof ProjectInput, string>>>({});
   const [consent, setConsent] = useState(false);
   const [consentError, setConsentError] = useState(false);
@@ -31,7 +31,7 @@ export function Submission({ onPublished, onClose, onBusyChange }: { onPublished
     setSaving(true);
     onBusyChange?.(true);
     try {
-      const project = await submitProject(backendConfig, { ...input, twitterUsername: input.twitterUsername.trim().replace(/^@/, ''), projectUsername: input.projectUsername.trim().replace(/^@/, ''), contract: input.contract.trim(), wallet: input.wallet.trim(), description: input.description.trim() });
+      const project = await submitProject(backendConfig, { ...input, twitterUsername: input.twitterUsername.trim().replace(/^@/, ''), projectUsername: input.projectUsername.trim().replace(/^@/, ''), contract: input.contract.trim(), description: input.description.trim() });
       onPublished(project);
       setPublished(true);
     } catch (error) { setStatus(error instanceof Error ? error.message : 'Unable to publish. Please try again.'); }
@@ -51,12 +51,12 @@ export function Submission({ onPublished, onClose, onBusyChange }: { onPublished
 
   return <form className="project-form" onSubmit={publish} noValidate>
     <p className="form-intro">Tell the collective what you’re building. All fields are required except your personal Twitter account.</p>
-    <div className="public-callout"><Globe2 size={19} /><p><strong>Your submission will be public.</strong> Your project Twitter, contract, description, wallet, and personal Twitter (if provided) will be visible to everyone.</p></div>
+    <div className="public-callout"><Globe2 size={19} /><p><strong>Your submission will be public.</strong> Your project Twitter, contract, description, and personal Twitter (if provided) will be visible to everyone.</p></div>
     {usesPublicNetwork && <p className="publishing-notice">Shared on a public network, beyond this website. Only publish details you want others to keep. Editing and removal are not available here.</p>}
     <fieldset disabled={saving}>
       <legend className="sr-only">Project details</legend>
       {field('twitterUsername', 'Personal Twitter account', '@your_handle', 'You can leave this blank. Account ownership is not verified.')}
-      <div className="form-grid">{field('projectUsername', 'Project Twitter account', '@your_project', 'Your project’s Twitter username. 1–15 letters, numbers, or underscores.')}{field('contract', 'Contract address', '0x…', 'Your project’s EVM contract address.')}{field('description', 'About your project', 'What are you building, and who is it for?', '20–1,000 characters. Make it your own.', true)}<div className="full-width">{field('wallet', 'Wallet address', '0x…', 'A public EVM wallet address. No wallet connection needed. Hackathon winner funds will be sent to this address.')}</div></div>
+      <div className="form-grid">{field('projectUsername', 'Project Twitter account', '@your_project', 'Your project’s Twitter username. 1–15 letters, numbers, or underscores.')}{field('contract', 'Contract address', '0x…', 'Your project’s EVM contract address.')}{field('description', 'About your project', 'What are you building, and who is it for?', '20–1,000 characters. Make it your own.', true)}<p className="rewards-notice full-width">Rewards will be sent directly to the winners deployer addresses</p></div>
       <label className="consent"><input id="public-consent" type="checkbox" required checked={consent} onChange={event => setConsent(event.target.checked)} aria-invalid={consentError} aria-describedby={consentError ? 'consent-error' : undefined} /><span>I understand that the details I submit will be publicly visible.</span></label>
       {consentError && <p className="field-error" id="consent-error">Confirm that you want to make these details public.</p>}
     </fieldset>

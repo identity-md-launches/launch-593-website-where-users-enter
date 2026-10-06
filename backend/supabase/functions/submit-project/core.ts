@@ -3,7 +3,6 @@ export interface Input {
   projectUsername: string;
   contract: string;
   description: string;
-  wallet: string;
 }
 
 export class HttpError extends Error {
@@ -22,15 +21,12 @@ export function validateInput(value: unknown): Input {
     projectUsername: typeof raw.projectUsername === 'string' ? raw.projectUsername.trim().replace(/^@/, '') : '',
     contract: typeof raw.contract === 'string' ? raw.contract.trim().toLowerCase() : '',
     description: typeof raw.description === 'string' ? raw.description.trim() : '',
-    wallet: typeof raw.wallet === 'string' ? raw.wallet.trim() : '',
   };
   if (raw.twitterUsername != null && typeof raw.twitterUsername !== 'string') throw new HttpError(400, 'Use a personal Twitter username or leave it blank.');
   if (typeof raw.twitterUsername === 'string' && raw.twitterUsername.trim() && !/^[A-Za-z0-9_]{1,15}$/.test(input.twitterUsername)) throw new HttpError(400, 'Use a Twitter username with 1–15 letters, numbers, or underscores.');
   if (!/^[A-Za-z0-9_]{1,15}$/.test(input.projectUsername)) throw new HttpError(400, 'Enter your project’s Twitter username: 1–15 letters, numbers, or underscores.');
-  for (const field of ['contract', 'wallet'] as const) {
-    if (!/^0x[0-9a-fA-F]{40}$/.test(input[field]) || /^0x0{40}$/i.test(input[field])) {
-      throw new HttpError(400, `Enter a valid, nonzero EVM ${field} address (0x and 40 hexadecimal characters).`);
-    }
+  if (!/^0x[0-9a-fA-F]{40}$/.test(input.contract) || /^0x0{40}$/i.test(input.contract)) {
+    throw new HttpError(400, 'Enter a valid, nonzero EVM contract address (0x and 40 hexadecimal characters).');
   }
   if (input.description.length < 20 || input.description.length > 1000) throw new HttpError(400, 'Describe your project in 20–1,000 characters.');
   return input;

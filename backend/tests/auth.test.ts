@@ -10,7 +10,7 @@ Deno.serve = ((fn: unknown) => { handler = fn as typeof handler; }) as unknown a
 await import('../supabase/functions/submit-project/index.ts');
 Deno.serve = serve;
 
-const input = { projectUsername: 'pond_ai', contract: `0x${'ab'.repeat(20)}`, wallet: `0x${'cd'.repeat(20)}`, description: 'An open community building useful AI tools.', twitterUsername: ' @builder ' };
+const input = { projectUsername: 'pond_ai', contract: `0x${'ab'.repeat(20)}`, description: 'An open community building useful AI tools.', twitterUsername: ' @builder ' };
 function req(body: unknown = input) {
   return new Request('https://example.test/submit-project', { method: 'POST', headers: { Origin: 'https://pond.example', 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
 }
@@ -25,6 +25,8 @@ Deno.test('publishes without sign-in, using only a server-held database key', as
     assert(new Headers(init?.headers).get('Authorization') === 'Bearer synthetic-service-key', 'server key stays on the database request');
     const inserted = JSON.parse(String(init?.body));
     assert(inserted.twitter_username === 'builder', 'self-reported handle is normalized');
+    assert(!('wallet' in inserted), 'wallet is not persisted');
+    assert(!new URL(String(url)).searchParams.get('select')!.includes('wallet'), 'wallet is not returned');
     assert(!('verified' in inserted), 'do not persist client verification claims');
     return Response.json([{ ...input, twitterUsername: inserted.twitter_username, id: 'real-row', createdAt: '2026-10-06T12:00:00Z' }], { status: 201 });
   }) as typeof fetch;

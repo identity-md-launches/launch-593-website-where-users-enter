@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { createHandler, validateInput, HttpError } from '../supabase/functions/submit-project/core.ts';
 import { fetchProjects, submitProject } from '../../src/lib/submissions.ts';
 
-const input = { twitterUsername: 'self_reported', projectUsername: 'pond_ai', contract: `0x${'ab'.repeat(20)}`, description: 'An open community of AI project builders.', wallet: `0x${'cd'.repeat(20)}` };
+const input = { twitterUsername: 'self_reported', projectUsername: 'pond_ai', contract: `0x${'ab'.repeat(20)}`, description: 'An open community of AI project builders.' };
 const project = { ...input, id: 'project-1', createdAt: '2026-10-02T12:00:00Z' };
 const config = { url: 'https://example.supabase.co', anonKey: 'public-key' };
 const request = (body = input, headers = {}) => new Request('https://example.test/submit-project', {
@@ -11,12 +11,12 @@ const request = (body = input, headers = {}) => new Request('https://example.tes
 });
 const handler = (overrides = {}) => createHandler({ origins: ['https://pond.example'], insert: async (data) => ({ ...project, ...data }), ...overrides });
 
-test('all five input fields are normalized and unrelated properties are discarded', () => {
-  assert.deepEqual(validateInput({ ...input, projectUsername: ' @pond_ai ', contract: input.contract.toUpperCase().replace('0X', '0x'), twitterUsername: ' @self_reported ', verified: true }), input);
+test('all four input fields are normalized and unrelated properties are discarded', () => {
+  assert.deepEqual(validateInput({ ...input, projectUsername: ' @pond_ai ', contract: input.contract.toUpperCase().replace('0X', '0x'), twitterUsername: ' @self_reported ', verified: true, wallet: 'discard-this-legacy-value' }), input);
 });
 
 test('invalid and zero addresses, invalid username, and short or oversized descriptions are rejected', () => {
-  for (const bad of [{ twitterUsername: '@' }, { projectUsername: '' }, { projectUsername: 'invalid-handle' }, { projectUsername: 'x'.repeat(16) }, { twitterUsername: 'not a handle' }, { twitterUsername: 'x'.repeat(16) }, { contract: 'wrong' }, { wallet: `0x${'0'.repeat(40)}` }, { projectUsername: '<script>' }, { description: 'short' }, { description: 'x'.repeat(1001) }]) {
+  for (const bad of [{ twitterUsername: '@' }, { projectUsername: '' }, { projectUsername: 'invalid-handle' }, { projectUsername: 'x'.repeat(16) }, { twitterUsername: 'not a handle' }, { twitterUsername: 'x'.repeat(16) }, { contract: 'wrong' }, { contract: `0x${'0'.repeat(40)}` }, { projectUsername: '<script>' }, { description: 'short' }, { description: 'x'.repeat(1001) }]) {
     assert.throws(() => validateInput({ ...input, ...bad }), (error) => error instanceof HttpError && error.status === 400);
   }
 });
@@ -73,16 +73,17 @@ test('duplicate contract error is actionable and private errors are not exposed'
   assert.ok(!(await unavailable.text()).includes('secret'));
 });
 
-test('public reads and writes do not send an account token; all five details are sent', async () => {
+test('public reads and writes do not send an account token; only the remaining details are sent', async () => {
   const original = globalThis.fetch;
   const calls = [];
   globalThis.fetch = async (url, init) => { calls.push({ url, init }); return Response.json(init.method === 'POST' ? project : [project]); };
   try {
     assert.deepEqual(await fetchProjects(config), [project]);
-    assert.deepEqual(await submitProject(config, input), project);
+    assert.deepEqual(await submitProject(config, { ...input, wallet: 'discard-this-legacy-value' }), project);
     assert.equal(calls[0].init.headers.Authorization, undefined);
     assert.equal(calls[1].init.headers.Authorization, undefined);
-    assert.equal(JSON.parse(calls[1].init.body).twitterUsername, input.twitterUsername);
+    assert.deepEqual(JSON.parse(calls[1].init.body), input);
+    assert.ok(!new URL(calls[0].url).searchParams.get('select').includes('wallet'));
   } finally { globalThis.fetch = original; }
 });
 

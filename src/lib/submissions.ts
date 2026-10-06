@@ -9,7 +9,6 @@ export interface Project {
   twitterUsername: string;
   contract: string;
   description: string;
-  wallet: string;
   createdAt: string;
 }
 
@@ -18,10 +17,9 @@ export interface ProjectInput {
   projectUsername: string;
   contract: string;
   description: string;
-  wallet: string;
 }
 
-const selection = 'id,projectUsername:project_username,twitterUsername:twitter_username,contract,description,wallet,createdAt:created_at';
+const selection = 'id,projectUsername:project_username,twitterUsername:twitter_username,contract,description,createdAt:created_at';
 
 function baseUrl(config: BackendConfig): string {
   const url = new URL(config.url);
@@ -35,7 +33,7 @@ function baseUrl(config: BackendConfig): string {
 function isProject(value: unknown): value is Project {
   if (!value || typeof value !== 'object') return false;
   const row = value as Record<string, unknown>;
-  return ['id', 'projectUsername', 'twitterUsername', 'contract', 'description', 'wallet', 'createdAt']
+  return ['id', 'projectUsername', 'twitterUsername', 'contract', 'description', 'createdAt']
     .every((key) => typeof row[key] === 'string');
 }
 
@@ -83,7 +81,7 @@ export async function submitProject(config: BackendConfig, input: ProjectInput):
       apikey: config.anonKey,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(input),
+    body: JSON.stringify({ twitterUsername: input.twitterUsername, projectUsername: input.projectUsername, contract: input.contract, description: input.description }),
   });
   if (!isProject(body)) throw new Error('The server response was incomplete. Refresh the directory before trying again.');
   return body;

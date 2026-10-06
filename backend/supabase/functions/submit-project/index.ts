@@ -7,11 +7,11 @@ async function insert(input: Input): Promise<unknown> {
   if (!supabaseUrl || !serviceKey || !origins.length) {
     throw new HttpError(503, 'Publishing is not configured yet. Please try again later.');
   }
-  const select = 'id,projectUsername:project_username,twitterUsername:twitter_username,contract,description,wallet,createdAt:created_at';
+  const select = 'id,projectUsername:project_username,twitterUsername:twitter_username,contract,description,createdAt:created_at';
   const response = await fetch(`${supabaseUrl}/rest/v1/projects?select=${encodeURIComponent(select)}`, {
     method: 'POST',
     headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json', Prefer: 'return=representation' },
-    body: JSON.stringify({ project_username: input.projectUsername, twitter_username: input.twitterUsername, contract: input.contract, description: input.description, wallet: input.wallet }),
+    body: JSON.stringify({ project_username: input.projectUsername, twitter_username: input.twitterUsername, contract: input.contract, description: input.description }),
     signal: AbortSignal.timeout(10_000),
   });
   const body = await response.json().catch(() => null);

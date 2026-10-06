@@ -1,0 +1,16 @@
+{
+  "limit_bytes": 8388608,
+  "file_payload_bytes": 4242450,
+  "file_count": 105,
+  "dist_bytes": 540062,
+  "source_matches_build_input": true,
+  "dist_matches_final_build": true,
+  "relative_asset_references_resolve": true,
+  "relative_asset_reference_count": 6,
+  "exact_rewards_copy_in_bundle": true,
+  "obsolete_wallet_ui_absent_from_bundle": true,
+  "protected_files_unchanged": true,
+  "submodules": 0,
+  "dependency_or_cache_files_in_submission": 0,
+  "note": "Uncompressed complete tracked/new file payload, including source, unchanged manifest/lockfiles, static export and historical documentation. Removed input/scratch and preexisting ignored artifacts are excluded. Git metadata was not written; no ignore file changed."
+}
