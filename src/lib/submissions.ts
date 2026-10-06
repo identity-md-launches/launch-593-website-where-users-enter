@@ -14,6 +14,7 @@ export interface Project {
 }
 
 export interface ProjectInput {
+  twitterUsername: string;
   projectUsername: string;
   contract: string;
   description: string;
@@ -50,14 +51,14 @@ async function request(url: string, init: RequestInit): Promise<unknown> {
     const message = body && typeof body === 'object' && 'error' in body && typeof body.error === 'string'
       ? body.error
       : response.status === 401 || response.status === 403
-        ? 'Your session could not be verified. Sign in with Twitter again.'
+        ? 'Publishing is unavailable. Please try again later.'
         : 'The public directory is temporarily unavailable. Please try again.';
     throw new Error(message);
   }
   return body;
 }
 
-/** All persisted public submissions, read without a Privy session. */
+/** All persisted public submissions, read without signing in. */
 export async function fetchProjects(config: BackendConfig): Promise<Project[]> {
   const base = baseUrl(config);
   const projects: Project[] = [];
@@ -74,14 +75,12 @@ export async function fetchProjects(config: BackendConfig): Promise<Project[]> {
   }
 }
 
-/** Twitter identity is deliberately absent from input; the server derives it. */
-export async function submitProject(config: BackendConfig, input: ProjectInput, accessToken: string): Promise<Project> {
-  if (!accessToken) throw new Error('Sign in with Twitter before publishing your project.');
+/** All five details are self-reported; no account sign-in is required. */
+export async function submitProject(config: BackendConfig, input: ProjectInput): Promise<Project> {
   const body = await request(`${baseUrl(config)}/functions/v1/submit-project`, {
     method: 'POST',
     headers: {
       apikey: config.anonKey,
-      Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(input),

@@ -1,4 +1,5 @@
 export interface Input {
+  twitterUsername: string;
   projectUsername: string;
   contract: string;
   description: string;
@@ -14,14 +15,16 @@ export class HttpError extends Error {
 }
 
 export function validateInput(value: unknown): Input {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new HttpError(400, 'Enter the four project details.');
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new HttpError(400, 'Enter all five project details.');
   const raw = value as Record<string, unknown>;
   const input = {
+    twitterUsername: typeof raw.twitterUsername === 'string' ? raw.twitterUsername.trim().replace(/^@/, '') : '',
     projectUsername: typeof raw.projectUsername === 'string' ? raw.projectUsername.trim().replace(/^@/, '') : '',
     contract: typeof raw.contract === 'string' ? raw.contract.trim().toLowerCase() : '',
     description: typeof raw.description === 'string' ? raw.description.trim() : '',
     wallet: typeof raw.wallet === 'string' ? raw.wallet.trim() : '',
   };
+  if (!/^[A-Za-z0-9_]{1,15}$/.test(input.twitterUsername)) throw new HttpError(400, 'Use a Twitter username with 1–15 letters, numbers, or underscores.');
   if (!/^[A-Za-z0-9_-]{3,32}$/.test(input.projectUsername)) throw new HttpError(400, 'Use 3–32 letters, numbers, underscores or hyphens for your project username.');
   for (const field of ['contract', 'wallet'] as const) {
     if (!/^0x[0-9a-fA-F]{40}$/.test(input[field]) || /^0x0{40}$/i.test(input[field])) {
@@ -34,8 +37,7 @@ export function validateInput(value: unknown): Input {
 
 interface Services {
   origins: string[];
-  authenticate: (token: string) => Promise<string>;
-  insert: (input: Input, twitterUsername: string) => Promise<unknown>;
+  insert: (input: Input) => Promise<unknown>;
 }
 
 async function readJson(req: Request): Promise<unknown> {
@@ -76,12 +78,9 @@ export function createHandler(services: Services) {
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers });
     if (req.method !== 'POST') { headers.set('Allow', 'POST, OPTIONS'); return json({ error: 'Use the project submission form to publish.' }, 405); }
     try {
-      const auth = req.headers.get('Authorization')?.match(/^Bearer ([^\s]+)$/i);
-      if (!auth || auth[1].length > 8192) throw new HttpError(401, 'Sign in with Twitter before publishing your project.');
       if (!req.headers.get('Content-Type')?.toLowerCase().startsWith('application/json')) throw new HttpError(415, 'Send project details as JSON.');
       const input = validateInput(await readJson(req));
-      const twitterUsername = await services.authenticate(auth[1]);
-      const project = await services.insert(input, twitterUsername);
+      const project = await services.insert(input);
       return json(project, 201);
     } catch (error) {
       if (error instanceof HttpError) return json({ error: error.message }, error.status);

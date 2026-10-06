@@ -5,15 +5,11 @@ import { Submission } from '../src/components/Submission';
 import type { Project } from '../src/lib/submissions';
 
 const mocks = vi.hoisted(() => ({
-  auth: {
-    ready: true, authenticated: true, twitterUsername: 'real_builder' as string | null, error: null as string | null,
-    login: vi.fn(), logout: vi.fn(), getAccessToken: vi.fn(),
-  },
+  configured: true,
   submit: vi.fn(),
   config: { url: 'https://configured.example', anonKey: 'public-test-key' },
 }));
-vi.mock('../src/auth', () => ({ useAuth: () => mocks.auth }));
-vi.mock('../src/config', () => ({ hasBackend: true, backendConfig: mocks.config }));
+vi.mock('../src/config', () => ({ get hasBackend() { return mocks.configured; }, backendConfig: mocks.config }));
 vi.mock('../src/lib/submissions', () => ({ submitProject: mocks.submit }));
 
 const contract = `0x${'ab'.repeat(20)}`;
@@ -24,12 +20,11 @@ const persisted: Project = { id: 'server-issued-id', projectUsername: 'pond_tool
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.submit.mockReset();
-  Object.assign(mocks.auth, { ready: true, authenticated: true, twitterUsername: 'real_builder', error: null });
-  mocks.auth.getAccessToken.mockResolvedValue('verified-privy-token');
-  mocks.auth.login.mockResolvedValue(undefined);
+  mocks.configured = true;
 });
 
 async function fillForm(user: ReturnType<typeof userEvent.setup>) {
+  await user.type(screen.getByRole('textbox', { name: /^Twitter account/ }), '@real_builder');
   await user.type(screen.getByRole('textbox', { name: /^Project username/ }), ' @pond_tools ');
   await user.type(screen.getByRole('textbox', { name: /^Contract address/ }), contract);
   await user.type(screen.getByRole('textbox', { name: /^About your project/ }), ` ${description} `);
@@ -43,42 +38,27 @@ function renderForm() {
   return { onPublished, onClose };
 }
 
-describe('authenticated public submission', () => {
-  it.each([
-    { authenticated: false, twitterUsername: null },
-    { authenticated: true, twitterUsername: null },
-  ])('keeps the form behind a verified Twitter account: %j', async (identity) => {
-    Object.assign(mocks.auth, identity);
-    const user = userEvent.setup();
-    renderForm();
-    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Publish project' })).not.toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Continue with Twitter' }));
-    expect(mocks.auth.login).toHaveBeenCalledOnce();
-    expect(mocks.submit).not.toHaveBeenCalled();
-  });
-
+describe('public submission without sign-in', () => {
   it('requires complete valid fields and explicit public visibility consent', async () => {
     const user = userEvent.setup();
     const { onPublished } = renderForm();
     const twitter = screen.getByRole('textbox', { name: /^Twitter account/ });
-    expect(twitter).toHaveValue('@real_builder');
-    expect(twitter).toHaveAttribute('readonly');
+    expect(twitter).toHaveValue('');
+    expect(twitter).not.toHaveAttribute('readonly');
     await user.click(screen.getByRole('button', { name: 'Publish project' }));
-    for (const name of [/^Project username/, /^Contract address/, /^About your project/, /^Wallet address/]) {
+    for (const name of [/^Twitter account/, /^Project username/, /^Contract address/, /^About your project/, /^Wallet address/]) {
       expect(screen.getByRole('textbox', { name })).toHaveAttribute('aria-invalid', 'true');
     }
-    await waitFor(() => expect(screen.getByRole('textbox', { name: /^Project username/ })).toHaveFocus());
+    await waitFor(() => expect(twitter).toHaveFocus());
     expect(screen.getByText('Confirm that you want to make these details public.')).toBeVisible();
     await fillForm(user);
     await user.click(screen.getByRole('button', { name: 'Publish project' }));
     expect(screen.getByRole('checkbox')).toHaveAttribute('aria-invalid', 'true');
-    expect(mocks.auth.getAccessToken).not.toHaveBeenCalled();
     expect(mocks.submit).not.toHaveBeenCalled();
     expect(onPublished).not.toHaveBeenCalled();
   });
 
-  it('publishes only after server success, with normalized input and the access token', async () => {
+  it('publishes only after server success, with normalized self-reported details', async () => {
     const user = userEvent.setup();
     let resolveSubmission!: (project: Project) => void;
     mocks.submit.mockImplementation(() => new Promise<Project>((resolve) => { resolveSubmission = resolve; }));
@@ -87,7 +67,7 @@ describe('authenticated public submission', () => {
     await user.click(screen.getByRole('checkbox'));
     await user.click(screen.getByRole('button', { name: 'Publish project' }));
     await waitFor(() => expect(mocks.submit).toHaveBeenCalledOnce());
-    expect(mocks.submit).toHaveBeenCalledWith(mocks.config, { projectUsername: 'pond_tools', contract, wallet, description }, 'verified-privy-token');
+    expect(mocks.submit).toHaveBeenCalledWith(mocks.config, { twitterUsername: 'real_builder', projectUsername: 'pond_tools', contract, wallet, description });
     expect(screen.getByRole('button', { name: 'Publishing project…' })).toBeDisabled();
     expect(screen.getByRole('textbox', { name: /^Project username/ })).toBeDisabled();
     expect(onPublished).not.toHaveBeenCalled();
@@ -118,16 +98,16 @@ describe('authenticated public submission', () => {
     expect(mocks.submit).toHaveBeenCalledTimes(2);
   });
 
-  it('does not contact the submission endpoint when the session token has expired', async () => {
+  it('does not send or pretend to publish when services are unconfigured', async () => {
+    mocks.configured = false;
     const user = userEvent.setup();
-    mocks.auth.getAccessToken.mockResolvedValue(null);
     const { onPublished } = renderForm();
     await fillForm(user);
     await user.click(screen.getByRole('checkbox'));
     await user.click(screen.getByRole('button', { name: 'Publish project' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('Your session has expired.');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Your details have not been submitted.');
     expect(mocks.submit).not.toHaveBeenCalled();
     expect(onPublished).not.toHaveBeenCalled();
-    expect(screen.getByRole('textbox', { name: /^Project username/ })).toHaveValue(' @pond_tools ');
+    expect(screen.getByRole('textbox', { name: /^Twitter account/ })).toHaveValue('@real_builder');
   });
 });

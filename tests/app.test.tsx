@@ -2,114 +2,94 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from '../src/App';
-import { exampleProjects } from '../src/lib/projects';
+import type { Project } from '../src/lib/submissions';
 
-const mocks = vi.hoisted(() => ({
-  auth: {
-    ready: true, authenticated: false, twitterUsername: null as string | null, error: null,
-    login: vi.fn(), logout: vi.fn(), getAccessToken: vi.fn(),
-  },
-}));
-vi.mock('../src/auth', () => ({ useAuth: () => mocks.auth }));
-vi.mock('../src/config', () => ({ hasBackend: false, backendConfig: { url: '', anonKey: '' } }));
-vi.mock('../src/lib/submissions', () => ({ fetchProjects: vi.fn(), submitProject: vi.fn() }));
+const mocks = vi.hoisted(() => ({ configured: false, fetch: vi.fn(), submit: vi.fn() }));
+vi.mock('../src/config', () => ({ get hasBackend() { return mocks.configured; }, backendConfig: { url: '', anonKey: '' } }));
+vi.mock('../src/lib/submissions', () => ({ fetchProjects: mocks.fetch, submitProject: mocks.submit }));
+const projects: Project[] = [
+  { id: '1', projectUsername: 'zebra_tools', twitterUsername: 'builder_one', description: 'Tools for an open community of builders.', contract: `0x${'ab'.repeat(20)}`, wallet: `0x${'cd'.repeat(20)}`, createdAt: '2026-10-06T12:00:00Z' },
+  { id: '2', projectUsername: 'alpha_project', twitterUsername: 'builder_two', description: 'A place for independent project research.', contract: `0x${'ef'.repeat(20)}`, wallet: `0x${'ab'.repeat(20)}`, createdAt: '2026-10-05T12:00:00Z' },
+];
 
-beforeEach(() => {
-  vi.clearAllMocks();
-  mocks.auth.authenticated = false;
-  mocks.auth.twitterUsername = null;
-});
-
-function cardNames() {
-  return screen.getAllByRole('article').map((card) => within(card).getByRole('heading', { level: 3 }).textContent);
-}
+beforeEach(() => { vi.clearAllMocks(); mocks.configured = false; mocks.fetch.mockReset().mockResolvedValue(projects); });
+function cardNames() { return screen.getAllByRole('article').map(card => within(card).getByRole('heading', { level: 3 }).textContent); }
+async function renderDirectory() { mocks.configured = true; render(<App />); await screen.findByRole('button', { name: 'zebra_tools' }); }
 
 describe('public project directory', () => {
-  it('lets signed-out visitors search project usernames, builders and full contract addresses', async () => {
-    const user = userEvent.setup();
+  it('shows an honest empty directory with only All projects and no sign-in or examples', () => {
     render(<App />);
-    expect(screen.getAllByRole('article')).toHaveLength(6);
-    const search = screen.getByRole('searchbox', { name: 'Search projects' });
-    await user.type(search, 'SWARM_PROTOCOL');
-    expect(cardNames()).toEqual(['Swarm Protocol']);
-    await user.clear(search);
-    await user.type(search, 'frogstack_dev');
-    expect(cardNames()).toEqual(['FrogStack']);
-    await user.clear(search);
-    await user.type(search, exampleProjects[3].contract);
-    expect(cardNames()).toEqual(['LilyPad']);
-    expect(mocks.auth.login).not.toHaveBeenCalled();
-  });
-
-  it('filters categories and clears both search and category from an empty state', async () => {
-    const user = userEvent.setup();
-    render(<App />);
-    const category = screen.getByRole('button', { name: 'Developer tools' });
-    await user.click(category);
-    expect(category).toHaveAttribute('aria-pressed', 'true');
-    expect(cardNames()).toEqual(['FrogStack', 'Prompt Pond']);
-    await user.type(screen.getByRole('searchbox'), 'no-such-project');
     expect(screen.queryAllByRole('article')).toHaveLength(0);
-    expect(screen.getByRole('heading', { name: 'No frogs in this corner yet.' })).toBeVisible();
-    await user.click(screen.getByRole('button', { name: 'Clear filters' }));
-    expect(screen.getByRole('searchbox')).toHaveValue('');
-    expect(screen.getByRole('button', { name: /All projects/ })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getAllByRole('article')).toHaveLength(6);
+    expect(screen.getByRole('heading', { name: 'Be the first in the pond.' })).toBeVisible();
+    const views = within(screen.getByRole('group', { name: 'Project views' }));
+    expect(views.getAllByRole('button')).toHaveLength(1);
+    expect(views.getByRole('button', { name: /All projects/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByRole('button', { name: /sign in|twitter|AI agents|Developer tools|Community/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Preview directory|Example|Privy/i)).not.toBeInTheDocument();
+    expect(mocks.fetch).not.toHaveBeenCalled();
   });
 
-  it('changes sort order and lets the clear-search control restore matching category results', async () => {
-    const user = userEvent.setup();
-    render(<App />);
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Sort by:' }), 'alphabetical');
-    expect(cardNames()).toEqual(['FrogStack', 'LilyPad', 'Pepe Research', 'Pond AI', 'Prompt Pond', 'Swarm Protocol']);
-    await user.selectOptions(screen.getByRole('combobox'), 'newest');
-    expect(cardNames()[0]).toBe('Pond AI');
-    await user.click(screen.getByRole('button', { name: 'AI agents' }));
-    await user.type(screen.getByRole('searchbox'), 'Swarm');
-    expect(cardNames()).toEqual(['Swarm Protocol']);
+  it('searches actual records by username, builder and full contract address', async () => {
+    const user = userEvent.setup(); await renderDirectory();
+    const search = screen.getByRole('searchbox', { name: 'Search projects' });
+    for (const term of ['ZEBRA_TOOLS', 'builder_one', projects[0].contract]) {
+      await user.clear(search); await user.type(search, term);
+      expect(cardNames()).toEqual(['zebra_tools']);
+    }
     await user.click(screen.getByRole('button', { name: 'Clear search' }));
-    expect(cardNames()).toEqual(['Pond AI', 'Swarm Protocol']);
+    expect(cardNames()).toHaveLength(2);
   });
 
-  it('opens complete public project details, copies an address and restores focus on close', async () => {
-    const user = userEvent.setup();
-    render(<App />);
-    const trigger = screen.getByRole('button', { name: 'Pond AI' });
-    await user.click(trigger);
-    const dialog = screen.getByRole('dialog', { name: 'Pond AI' });
-    expect(within(dialog).getByText(exampleProjects[0].contract)).toBeVisible();
-    expect(within(dialog).getByText(exampleProjects[0].wallet)).toBeVisible();
-    expect(within(dialog).getByText('@pond_builder')).toBeVisible();
-    expect(within(dialog).getByText(exampleProjects[0].description)).toBeVisible();
-    expect(within(dialog).getByText(/not a real submission/)).toBeVisible();
+  it('sorts records and uses All projects to reset an empty search', async () => {
+    const user = userEvent.setup(); await renderDirectory();
+    await user.selectOptions(screen.getByRole('combobox'), 'alphabetical');
+    expect(cardNames()).toEqual(['alpha_project', 'zebra_tools']);
+    await user.selectOptions(screen.getByRole('combobox'), 'newest');
+    expect(cardNames()).toEqual(['zebra_tools', 'alpha_project']);
+    await user.type(screen.getByRole('searchbox'), 'missing');
+    expect(screen.getByRole('heading', { name: 'No matching projects.' })).toBeVisible();
+    await user.click(screen.getByRole('button', { name: /All projects/ }));
+    expect(screen.getByRole('searchbox')).toHaveValue('');
+    expect(cardNames()).toHaveLength(2);
+  });
+
+  it('opens full details, copies an address and returns focus on close', async () => {
+    const user = userEvent.setup(); await renderDirectory();
+    const trigger = screen.getByRole('button', { name: 'zebra_tools' }); await user.click(trigger);
+    const dialog = screen.getByRole('dialog', { name: 'zebra_tools' });
+    expect(within(dialog).getByText(projects[0].contract)).toBeVisible();
+    expect(within(dialog).getByText(projects[0].wallet)).toBeVisible();
+    expect(within(dialog).getByRole('link', { name: /@builder_one/ })).toHaveAttribute('href', 'https://x.com/builder_one');
+    expect(within(dialog).getByText(/are not verified/)).toBeVisible();
     await user.click(within(dialog).getByRole('button', { name: 'Copy contract address' }));
-    expect(await navigator.clipboard.readText()).toBe(exampleProjects[0].contract);
-    await user.click(within(dialog).getByRole('button', { name: 'Close dialog' }));
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    expect(trigger).toHaveFocus();
+    expect(await navigator.clipboard.readText()).toBe(projects[0].contract);
+    await user.click(within(dialog).getByRole('button', { name: 'Close dialog' })); expect(trigger).toHaveFocus();
   });
 
-  it('returns focus to the menu toggle after closing mobile information', async () => {
-    const user = userEvent.setup();
-    render(<App />);
-    const toggle = screen.getByRole('button', { name: 'Open navigation' });
-    await user.click(toggle);
-    const navigation = screen.getByRole('navigation', { name: 'Mobile navigation' });
-    await user.click(within(navigation).getByRole('button', { name: 'The collective' }));
+  it('retries a failed directory request without showing fictional fallback data', async () => {
+    mocks.configured = true; mocks.fetch.mockRejectedValueOnce(new Error('Check your connection and try again.'));
+    const user = userEvent.setup(); render(<App />);
+    expect(await screen.findByRole('alert')).toHaveTextContent('Check your connection');
+    expect(screen.queryAllByRole('article')).toHaveLength(0);
+    await user.click(screen.getByRole('button', { name: 'Try again' }));
+    await screen.findByRole('button', { name: 'zebra_tools' }); expect(cardNames()).toHaveLength(2);
+  });
+
+  it('returns focus to the persistent menu toggle after closing mobile information', async () => {
+    const user = userEvent.setup(); render(<App />);
+    const toggle = screen.getByRole('button', { name: 'Open navigation' }); await user.click(toggle);
+    await user.click(within(screen.getByRole('navigation', { name: 'Mobile navigation' })).getByRole('button', { name: 'The collective' }));
     expect(screen.queryByRole('navigation', { name: 'Mobile navigation' })).not.toBeInTheDocument();
-    const dialog = screen.getByRole('dialog', { name: 'Welcome to the collective.' });
-    await user.click(within(dialog).getByRole('button', { name: 'Close dialog' }));
-    expect(toggle).toHaveFocus();
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Close dialog' })); expect(toggle).toHaveFocus();
   });
 
-  it('opens the Twitter gate from the primary submit action without exposing editable fields', async () => {
-    const user = userEvent.setup();
-    render(<App />);
-    await user.click(screen.getByRole('button', { name: 'Submit your project' }));
-    const dialog = screen.getByRole('dialog', { name: 'Join the collective' });
-    expect(within(dialog).getByRole('button', { name: 'Continue with Twitter' })).toBeVisible();
-    expect(within(dialog).queryByRole('textbox')).not.toBeInTheDocument();
-    await user.click(within(dialog).getByRole('button', { name: 'Continue with Twitter' }));
-    expect(mocks.auth.login).toHaveBeenCalledOnce();
+  it('opens all five editable fields directly from the submit action', async () => {
+    const user = userEvent.setup(); render(<App />);
+    await user.click(screen.getAllByRole('button', { name: 'Submit your project' })[0]);
+    const dialog = screen.getByRole('dialog', { name: 'Share your project' });
+    expect(within(dialog).getAllByRole('textbox')).toHaveLength(5);
+    expect(within(dialog).getByRole('textbox', { name: /^Twitter account/ })).not.toHaveAttribute('readonly');
+    expect(within(dialog).queryByRole('button', { name: /Twitter/ })).not.toBeInTheDocument();
+    expect(within(dialog).getByText(/Publishing is not available yet/)).toBeVisible();
   });
 });
